@@ -1,0 +1,3 @@
+# My Site
+
+Static website.
