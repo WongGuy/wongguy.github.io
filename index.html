@@ -1,2 +1,36 @@
 <!doctype html>
-<html><body><h1>Hello</h1></body></html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mech Refs</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>Mech Refs</h1>
+    <p>Mechanical reference calculators, tables, and charts.</p>
+  </header>
+
+  <main>
+    <section class="chart-card">
+      <h2>ISO Metric Screw Thread Chart</h2>
+      <div class="chart-layout">
+        <div class="knob-block">
+          <div id="knob"></div>
+          <div id="knob-size-readout" class="knob-size-readout">M6</div>
+          <p class="knob-hint">Drag, scroll, or use arrow keys to select a major diameter.</p>
+        </div>
+        <div id="spec-panel" class="spec-panel"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>mech-refs</p>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
