@@ -128,7 +128,7 @@ main {
 .chart-card-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
   margin-bottom: 1.25rem;
@@ -137,11 +137,14 @@ main {
 .detail-toggle {
   display: flex;
   align-items: center;
+  flex: 0 0 auto;
   gap: 0.4rem;
+  margin-top: 0.5rem;
   font-size: 0.85rem;
   color: var(--text-dim);
   cursor: pointer;
   user-select: none;
+  white-space: nowrap;
 }
 
 .detail-toggle input {
@@ -174,6 +177,10 @@ main {
 
 .spec-group + .spec-group {
   border-top: 1px solid var(--panel-border);
+  margin-left: -1.5rem;
+  margin-right: -1.5rem;
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
   padding-top: 2rem;
 }
 
@@ -200,17 +207,18 @@ main {
 .slider-block {
   display: flex;
   flex-direction: row;
-  align-items: center;
+  align-items: flex-start;
   gap: 1rem;
   user-select: none;
   width: 100%;
-  max-width: 28rem;
+  max-width: 34rem;
   margin: 0 auto;
 }
 
 .size-readout {
   flex: 0 0 auto;
   width: 3.5rem;
+  margin-top: 0.5rem;
   white-space: nowrap;
   font-size: 1.4rem;
   font-weight: 700;
@@ -227,7 +235,7 @@ main {
 }
 
 .size-slider {
-  --thumb-width: 22px;
+  --thumb-width: 30px;
   -webkit-appearance: none;
   appearance: none;
   position: relative;

@@ -235,7 +235,7 @@ const screwFields = [
   { key: "pitch",         label: "Pitch",               unit: "mm" },
   { key: "tapDrill",      label: "Tap drill size",      unit: "mm" },
   { key: "clearanceHole", label: "Clearance hole size", unit: "mm" },
-  { key: "stressArea",    label: "Tensile stress area", unit: "mm²" },
+  // { key: "stressArea",    label: "Tensile stress area", unit: "mm²" },
 ];
 
 // Labels and units shown in the SHCS side panel, in display order.

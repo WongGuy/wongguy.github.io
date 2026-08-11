@@ -13,15 +13,13 @@
   const bhcsPanelEl = document.getElementById("bhcs-spec-panel");
   const detailToggleEl = document.getElementById("detail-toggle");
 
-  let showDetail = false;
-  detailToggleEl.checked = showDetail;
-
   const maxIndex = screwData.length - 1;
   sliderEl.max = String(maxIndex);
   minLabelEl.textContent = screwData[0].size;
   maxLabelEl.textContent = screwData[maxIndex].size;
 
   const SLIDER_STORAGE_KEY = "screwSliderIndex";
+  const DETAIL_STORAGE_KEY = "screwDetailEnabled";
 
   function getStoredIndex() {
     const stored = Number(localStorage.getItem(SLIDER_STORAGE_KEY));
@@ -31,7 +29,17 @@
     return Math.floor(screwData.length / 2);
   }
 
+  function getStoredDetail() {
+    const stored = localStorage.getItem(DETAIL_STORAGE_KEY);
+    if (stored === null) {
+      return true;
+    }
+    return stored === "true";
+  }
+
   let selectedIndex = getStoredIndex();
+  let showDetail = getStoredDetail();
+  detailToggleEl.checked = showDetail;
 
   function getThumbWidth() {
     const raw = getComputedStyle(sliderEl).getPropertyValue("--thumb-width");
@@ -151,6 +159,7 @@
 
   detailToggleEl.addEventListener("change", () => {
     showDetail = detailToggleEl.checked;
+    localStorage.setItem(DETAIL_STORAGE_KEY, String(showDetail));
     renderPanel();
   });
 
