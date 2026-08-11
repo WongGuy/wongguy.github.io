@@ -161,7 +161,7 @@ main {
 .chart-row {
   display: flex;
   gap: 2rem;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   justify-content: center;
 }
@@ -170,6 +170,11 @@ main {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+}
+
+.spec-group + .spec-group {
+  border-top: 1px solid var(--panel-border);
+  padding-top: 2rem;
 }
 
 .spec-group-title {
