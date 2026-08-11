@@ -11,6 +11,9 @@
   const shcsPanelEl = document.getElementById("shcs-spec-panel");
   const fhcsPanelEl = document.getElementById("fhcs-spec-panel");
   const bhcsPanelEl = document.getElementById("bhcs-spec-panel");
+  const shcsLengthChartEl = document.getElementById("shcs-length-chart");
+  const fhcsLengthChartEl = document.getElementById("fhcs-length-chart");
+  const bhcsLengthChartEl = document.getElementById("bhcs-length-chart");
   const detailToggleEl = document.getElementById("detail-toggle");
 
   const maxIndex = screwData.length - 1;
@@ -125,6 +128,52 @@
     `;
   }
 
+  // Two rows (overall length, threaded length) with one column per valid
+  // length. When a length is fully threaded (length === threaded), its
+  // column is a single cell spanning both rows instead of two identical
+  // ones. Relies on the browser's normal rowspan column-filling: row two
+  // only emits a <td> for columns row one didn't already span, and the
+  // browser slots each into the next open column automatically.
+  function buildLengthChartHtml(lengths) {
+    if (!lengths || lengths.length === 0) {
+      // Same two-row structure as the populated table (row labels plus a
+      // rowspan-2 message cell) so the empty state reserves the same
+      // vertical space instead of collapsing the layout.
+      return `
+        <table class="length-table">
+          <tbody>
+            <tr><td class="length-row-label">Length</td><td class="length-cell length-empty-msg" rowspan="2">Configuration Not Supported by ISO</td></tr>
+            <tr><td class="length-row-label">Threaded</td></tr>
+          </tbody>
+        </table>
+      `;
+    }
+
+    const lengthCells = [];
+    const threadedCells = [];
+    lengths.forEach(({ length, threaded }) => {
+      if (length === threaded) {
+        lengthCells.push(`<td class="length-cell" rowspan="2">${length}</td>`);
+      } else {
+        lengthCells.push(`<td class="length-cell">${length}</td>`);
+        threadedCells.push(`<td class="length-cell">${threaded}</td>`);
+      }
+    });
+
+    return `
+      <table class="length-table">
+        <tbody>
+          <tr><td class="length-row-label">Length</td>${lengthCells.join("")}</tr>
+          <tr><td class="length-row-label">Threaded</td>${threadedCells.join("")}</tr>
+        </tbody>
+      </table>
+    `;
+  }
+
+  function renderLengthChart(el, headData) {
+    el.innerHTML = buildLengthChartHtml(headData.lengths);
+  }
+
   function renderPanel() {
     const row = screwData[selectedIndex];
     readoutEl.textContent = row.size;
@@ -133,6 +182,10 @@
     renderSpecPanel(shcsPanelEl, row.SHCS, shcsFields);
     renderSpecPanel(fhcsPanelEl, row.FHCS, fhcsFields);
     renderSpecPanel(bhcsPanelEl, row.BHCS, bhcsFields);
+
+    renderLengthChart(shcsLengthChartEl, row.SHCS);
+    renderLengthChart(fhcsLengthChartEl, row.FHCS);
+    renderLengthChart(bhcsLengthChartEl, row.BHCS);
   }
 
   function setIndex(i) {

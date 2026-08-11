@@ -125,6 +125,14 @@ main {
   font-size: 1.15rem;
 }
 
+.chart-card-header h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  text-align: center;
+}
+
 .chart-card-header {
   display: flex;
   align-items: center;
@@ -318,6 +326,52 @@ main {
   color: var(--text-dim);
 }
 
+@media (max-width: 600px) {
+  main {
+    padding: 1.5rem 0.75rem;
+  }
+
+  .chart-card {
+    padding: 1rem 0.75rem;
+  }
+
+  .spec-group + .spec-group {
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+
+  .slider-sticky {
+    margin: 0 -0.75rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .slider-block {
+    gap: 0.5rem;
+  }
+
+  .size-readout {
+    width: auto;
+    margin-top: 0.55rem;
+    font-size: 1.1rem;
+  }
+
+  .detail-toggle {
+    flex-direction: column;
+    gap: 0.15rem;
+    margin-top: 0.5rem;
+    font-size: 0.65rem;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .detail-toggle input {
+    width: 0.8rem;
+    height: 0.8rem;
+  }
+}
+
 /* --- Diagram panel --- */
 
 .diagram-panel {
@@ -399,6 +453,38 @@ main {
 .sub-label-bold {
   color: var(--text);
   font-weight: 700;
+}
+
+/* --- Valid length chart --- */
+
+.length-chart {
+  overflow-x: auto;
+}
+
+.length-table {
+  border-collapse: collapse;
+  margin: 0 auto;
+}
+
+.length-table td {
+  border: 1px solid var(--panel-border);
+  padding: 0.4rem 0.6rem;
+  text-align: center;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.length-row-label {
+  text-align: left;
+  color: var(--text-dim);
+  padding-right: 0.75rem;
+}
+
+.length-empty-msg {
+  color: var(--text-dim);
+  font-style: italic;
+  white-space: normal;
+  min-width: 12rem;
 }
 
 footer {
