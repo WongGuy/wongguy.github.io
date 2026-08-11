@@ -23,6 +23,7 @@
 const screwData = [
   {
     size: "M1.6",
+    diameter: "1.6",
     pitch: { "*Coarse": "0.35", Fine: "0.2", ExtraFine: "-" },
     tapDrill: { "*Coarse": "1.25", Fine: "1.4", ExtraFine: "-" },
     clearanceHole: { Close: "1.7", "*Normal": "1.8", Loose: "2.0" },
@@ -30,6 +31,7 @@ const screwData = [
   },
   {
     size: "M2",
+    diameter: "2.0",
     pitch: { "*Coarse": "0.4", Fine: "0.25", ExtraFine: "-" },
     tapDrill: { "*Coarse": "1.6", Fine: "1.75", ExtraFine: "-" },
     clearanceHole: { Close: "2.2", "*Normal": "2.4", Loose: "2.6" },
@@ -37,6 +39,7 @@ const screwData = [
   },
   {
     size: "M2.5",
+    diameter: "2.5",
     pitch: { "*Coarse": "0.45", Fine: "0.35", ExtraFine: "-" },
     tapDrill: { "*Coarse": "2.05", Fine: "2.15", ExtraFine: "-" },
     clearanceHole: { Close: "2.7", "*Normal": "2.9", Loose: "3.1" },
@@ -44,13 +47,23 @@ const screwData = [
   },
   {
     size: "M3",
+    diameter: "3.0",
     pitch: { "*Coarse": "0.5", Fine: "0.35", ExtraFine: "-" },
     tapDrill: { "*Coarse": "2.5", Fine: "2.65", ExtraFine: "-" },
     clearanceHole: { Close: "3.2", "*Normal": "3.4", Loose: "3.6" },
     stressArea: { "*Coarse": "5.03", Fine: "5.61", ExtraFine: "-" },
   },
   {
+    size: "M3.5",
+    diameter: "3.5",
+    pitch: { "*Coarse": "0.6", Fine: "0.35", ExtraFine: "-" },
+    tapDrill: { "*Coarse": "2.9", Fine: "3.15", ExtraFine: "-" },
+    clearanceHole: { Close: "3.7", "*Normal": "3.9", Loose: "4.2" },
+    stressArea: { "*Coarse": "6.78", Fine: "7.90", ExtraFine: "-" },
+  },
+  {
     size: "M4",
+    diameter: "4.0",
     pitch: { "*Coarse": "0.7", Fine: "0.5", ExtraFine: "-" },
     tapDrill: { "*Coarse": "3.3", Fine: "3.5", ExtraFine: "-" },
     clearanceHole: { Close: "4.3", "*Normal": "4.5", Loose: "4.8" },
@@ -58,6 +71,7 @@ const screwData = [
   },
   {
     size: "M5",
+    diameter: "5.0",
     pitch: { "*Coarse": "0.8", Fine: "0.5", ExtraFine: "-" },
     tapDrill: { "*Coarse": "4.2", Fine: "4.5", ExtraFine: "-" },
     clearanceHole: { Close: "5.3", "*Normal": "5.5", Loose: "5.8" },
@@ -65,6 +79,7 @@ const screwData = [
   },
   {
     size: "M6",
+    diameter: "6.0",
     pitch: { "*Coarse": "1.0", Fine: "0.75", ExtraFine: "-" },
     tapDrill: { "*Coarse": "5.0", Fine: "5.2", ExtraFine: "-" },
     clearanceHole: { Close: "6.4", "*Normal": "6.6", Loose: "7.0" },
@@ -72,6 +87,7 @@ const screwData = [
   },
   {
     size: "M8",
+    diameter: "8.0",
     pitch: { "*Coarse": "1.25", Fine: "1.0", ExtraFine: "0.75" },
     tapDrill: { "*Coarse": "6.8", Fine: "7.0", ExtraFine: "7.2" },
     clearanceHole: { Close: "8.4", "*Normal": "9.0", Loose: "10.0" },
@@ -79,6 +95,7 @@ const screwData = [
   },
   {
     size: "M10",
+    diameter: "10.0",
     pitch: { "*Coarse": "1.5", Fine: "1.25", ExtraFine: "1.0" },
     tapDrill: { "*Coarse": "8.5", Fine: "8.8", ExtraFine: "9.0" },
     clearanceHole: { Close: "10.5", "*Normal": "11.0", Loose: "12.0" },
@@ -86,6 +103,7 @@ const screwData = [
   },
   {
     size: "M12",
+    diameter: "12.0",
     pitch: { "*Coarse": "1.75", Fine: "1.5", ExtraFine: "1.25" },
     tapDrill: { "*Coarse": "10.2", Fine: "10.5", ExtraFine: "10.8" },
     clearanceHole: { Close: "13.0", "*Normal": "13.5", Loose: "14.5" },
@@ -93,6 +111,7 @@ const screwData = [
   },
   {
     size: "M16",
+    diameter: "16.0",
     pitch: { "*Coarse": "2.0", Fine: "1.5", ExtraFine: "-" },
     tapDrill: { "*Coarse": "14.0", Fine: "14.5", ExtraFine: "-" },
     clearanceHole: { Close: "17.0", "*Normal": "17.5", Loose: "18.5" },
@@ -100,6 +119,7 @@ const screwData = [
   },
   {
     size: "M18",
+    diameter: "18.0",
     pitch: { "*Coarse": "2.5", Fine: "2.0", ExtraFine: "1.5" },
     tapDrill: { "*Coarse": "15.5", Fine: "16.0", ExtraFine: "16.5" },
     clearanceHole: { Close: "19.0", "*Normal": "20.0", Loose: "21.0" },
@@ -107,6 +127,7 @@ const screwData = [
   },
   {
     size: "M20",
+    diameter: "20.0",
     pitch: { "*Coarse": "2.5", Fine: "2.0", ExtraFine: "1.5" },
     tapDrill: { "*Coarse": "17.5", Fine: "18.0", ExtraFine: "18.5" },
     clearanceHole: { Close: "21.0", "*Normal": "22.0", Loose: "24.0" },
@@ -114,6 +135,7 @@ const screwData = [
   },
   {
     size: "M22",
+    diameter: "22.0",
     pitch: { "*Coarse": "2.5", Fine: "2.0", ExtraFine: "1.5" },
     tapDrill: { "*Coarse": "19.5", Fine: "20.0", ExtraFine: "20.5" },
     clearanceHole: { Close: "23.0", "*Normal": "24.0", Loose: "26.0" },
@@ -121,6 +143,7 @@ const screwData = [
   },
   {
     size: "M24",
+    diameter: "24.0",
     pitch: { "*Coarse": "3.0", Fine: "2.0", ExtraFine: "-" },
     tapDrill: { "*Coarse": "21.0", Fine: "22.0", ExtraFine: "-" },
     clearanceHole: { Close: "25.0", "*Normal": "26.0", Loose: "28.0" },
@@ -128,6 +151,7 @@ const screwData = [
   },
   {
     size: "M30",
+    diameter: "30.0",
     pitch: { "*Coarse": "3.5", Fine: "2.0", ExtraFine: "-" },
     tapDrill: { "*Coarse": "26.5", Fine: "28.0", ExtraFine: "-" },
     clearanceHole: { Close: "31.0", "*Normal": "33.0", Loose: "35.0" },
@@ -135,6 +159,7 @@ const screwData = [
   },
   {
     size: "M36",
+    diameter: "36.0",
     pitch: { "*Coarse": "4.0", Fine: "3.0", ExtraFine: "-" },
     tapDrill: { "*Coarse": "32.0", Fine: "33.0", ExtraFine: "-" },
     clearanceHole: { Close: "37.0", "*Normal": "39.0", Loose: "42.0" },
@@ -145,7 +170,7 @@ const screwData = [
 // Labels and units shown in the side panel, in display order.
 // key must match a field name on the objects above.
 const screwFields = [
-  { key: "size",          label: "Screw Size", unit: "" },
+  { key: "diameter",      label: "Screw Diameter",      unit: "mm" },
   { key: "pitch",         label: "Pitch",               unit: "mm" },
   { key: "tapDrill",      label: "Tap drill size",      unit: "mm" },
   { key: "clearanceHole", label: "Clearance hole size", unit: "mm" },

@@ -18,7 +18,17 @@
   minLabelEl.textContent = screwData[0].size;
   maxLabelEl.textContent = screwData[maxIndex].size;
 
-  let selectedIndex = Math.floor(screwData.length / 2);
+  const SLIDER_STORAGE_KEY = "screwSliderIndex";
+
+  function getStoredIndex() {
+    const stored = Number(localStorage.getItem(SLIDER_STORAGE_KEY));
+    if (Number.isInteger(stored) && stored >= 0 && stored <= maxIndex) {
+      return stored;
+    }
+    return Math.floor(screwData.length / 2);
+  }
+
+  let selectedIndex = getStoredIndex();
 
   function getThumbWidth() {
     const raw = getComputedStyle(sliderEl).getPropertyValue("--thumb-width");
@@ -110,6 +120,7 @@
   function setIndex(i) {
     selectedIndex = Math.max(0, Math.min(maxIndex, i));
     sliderEl.value = String(selectedIndex);
+    localStorage.setItem(SLIDER_STORAGE_KEY, String(selectedIndex));
     renderPanel();
   }
 
