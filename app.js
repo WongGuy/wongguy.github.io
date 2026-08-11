@@ -87,7 +87,7 @@
   // Both the detail and compact tables are rendered at once, stacked in the
   // same grid cell with the inactive one hidden via visibility (not
   // display), so the panel always reserves the taller detail table's height
-  // and toggling "Show detail" never resizes the surrounding layout.
+  // and toggling the detail slider never resizes the surrounding layout.
   function renderPanel() {
     const row = screwData[selectedIndex];
     readoutEl.textContent = row.size;
