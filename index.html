@@ -9,25 +9,54 @@
 <body>
   <header>
     <h1>Mech Refs</h1>
-    <p>Mechanical reference calculators, tables, and charts.</p>
   </header>
 
   <main>
     <section class="chart-card">
-      <h2>ISO Metric Screw Thread Chart</h2>
+      <div class="chart-card-header">
+        <h2>ISO Metric Screw Thread Chart</h2>
+        <label class="detail-toggle">
+          <input type="checkbox" id="detail-toggle" />
+          I Crave Detail
+        </label>
+      </div>
       <div class="chart-layout">
-        <div class="knob-block">
-          <div id="knob"></div>
-          <div id="knob-size-readout" class="knob-size-readout">M6</div>
-          <p class="knob-hint">Drag, scroll, or use arrow keys to select a major diameter.</p>
+        <div class="slider-block">
+          <div id="size-readout" class="size-readout">M6</div>
+          <div class="slider-track-wrap">
+            <input
+              type="range"
+              id="size-slider"
+              class="size-slider"
+              min="0"
+              max="14"
+              step="1"
+              value="6"
+              aria-label="Select major diameter"
+            />
+            <div id="slider-ticks" class="slider-ticks"></div>
+            <div class="slider-endpoints">
+              <span id="slider-min-label"></span>
+              <span id="slider-max-label"></span>
+            </div>
+          </div>
         </div>
-        <div id="spec-panel" class="spec-panel"></div>
+        <div class="chart-row">
+          <div class="diagram-panel">
+            <img
+              src="assets/images/thread-diagram.svg"
+              alt="ISO metric thread diagram"
+              class="diagram-image"
+            />
+          </div>
+          <div id="spec-panel" class="spec-panel"></div>
+        </div>
       </div>
     </section>
   </main>
 
   <footer>
-    <p>mech-refs</p>
+    <p>Vibe coded interface, real ISO values.</p>
   </footer>
 
   <script src="data.js"></script>

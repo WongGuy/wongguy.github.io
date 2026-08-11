@@ -1,190 +1,125 @@
-// Renders the knob (SVG, built from screwData) and the side spec panel.
-// See data.js to edit the underlying table.
+// Renders the size slider (native range input, driven by screwData) and the
+// side spec panel. See data.js to edit the underlying table.
 
 (function () {
-  const SWEEP_DEG = 270; // total rotation range of the dial
-  const START_DEG = -135; // angle of the first step, measured from 12 o'clock
-  const RADIUS = 70;
-  const CENTER = 90;
-  const SVG_SIZE = 180;
-
-  const knobEl = document.getElementById("knob");
-  const readoutEl = document.getElementById("knob-size-readout");
+  const sliderEl = document.getElementById("size-slider");
+  const ticksEl = document.getElementById("slider-ticks");
+  const readoutEl = document.getElementById("size-readout");
+  const minLabelEl = document.getElementById("slider-min-label");
+  const maxLabelEl = document.getElementById("slider-max-label");
   const panelEl = document.getElementById("spec-panel");
+  const detailToggleEl = document.getElementById("detail-toggle");
+
+  let showDetail = false;
+  detailToggleEl.checked = showDetail;
+
+  const maxIndex = screwData.length - 1;
+  sliderEl.max = String(maxIndex);
+  minLabelEl.textContent = screwData[0].size;
+  maxLabelEl.textContent = screwData[maxIndex].size;
 
   let selectedIndex = Math.floor(screwData.length / 2);
 
-  function angleForIndex(i) {
-    if (screwData.length === 1) return START_DEG + SWEEP_DEG / 2;
-    return START_DEG + (SWEEP_DEG * i) / (screwData.length - 1);
+  function getThumbWidth() {
+    const raw = getComputedStyle(sliderEl).getPropertyValue("--thumb-width");
+    return parseFloat(raw) || 0;
   }
 
-  function polar(angleDeg, r) {
-    const rad = ((angleDeg - 90) * Math.PI) / 180;
-    return { x: CENTER + r * Math.cos(rad), y: CENTER + r * Math.sin(rad) };
-  }
-
-  function buildKnobSvg() {
-    const svgNS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(svgNS, "svg");
-    svg.setAttribute("width", SVG_SIZE);
-    svg.setAttribute("height", SVG_SIZE);
-    svg.setAttribute("viewBox", `0 0 ${SVG_SIZE} ${SVG_SIZE}`);
-    svg.setAttribute("class", "knob");
-    svg.setAttribute("role", "slider");
-    svg.setAttribute("tabindex", "0");
-    svg.setAttribute("aria-label", "Select major diameter");
-    svg.setAttribute("aria-valuemin", "0");
-    svg.setAttribute("aria-valuemax", String(screwData.length - 1));
-
-    // Dial body
-    const dial = document.createElementNS(svgNS, "circle");
-    dial.setAttribute("cx", CENTER);
-    dial.setAttribute("cy", CENTER);
-    dial.setAttribute("r", RADIUS);
-    dial.setAttribute("fill", "#2a2e37");
-    dial.setAttribute("stroke", "#3a3f4a");
-    dial.setAttribute("stroke-width", "2");
-    svg.appendChild(dial);
-
-    // Tick marks + labels
+  function buildTicks() {
+    // The thumb's travel is inset by half its width on each side (a range
+    // input centers the thumb within the track, it doesn't run edge-to-edge),
+    // so ticks must be offset the same way to line up with the thumb center.
+    const thumbWidth = getThumbWidth();
     screwData.forEach((row, i) => {
-      const angle = angleForIndex(i);
-      const outer = polar(angle, RADIUS);
-      const inner = polar(angle, RADIUS - 8);
-      const tick = document.createElementNS(svgNS, "line");
-      tick.setAttribute("x1", inner.x);
-      tick.setAttribute("y1", inner.y);
-      tick.setAttribute("x2", outer.x);
-      tick.setAttribute("y2", outer.y);
-      tick.setAttribute("stroke", "#565c68");
-      tick.setAttribute("stroke-width", "1.5");
-      tick.setAttribute("data-tick-index", String(i));
-      svg.appendChild(tick);
-
-      const labelPos = polar(angle, RADIUS + 12);
-      const label = document.createElementNS(svgNS, "text");
-      label.setAttribute("x", labelPos.x);
-      label.setAttribute("y", labelPos.y);
-      label.setAttribute("text-anchor", "middle");
-      label.setAttribute("dominant-baseline", "middle");
-      label.setAttribute("class", "knob-tick-label");
-      label.setAttribute("data-label-index", String(i));
-      label.textContent = row.size;
-      svg.appendChild(label);
-    });
-
-    // Needle
-    const needle = document.createElementNS(svgNS, "line");
-    needle.setAttribute("id", "knob-needle");
-    needle.setAttribute("x1", CENTER);
-    needle.setAttribute("y1", CENTER);
-    needle.setAttribute("stroke", "#4fa3ff");
-    needle.setAttribute("stroke-width", "3");
-    needle.setAttribute("stroke-linecap", "round");
-    svg.appendChild(needle);
-
-    const hub = document.createElementNS(svgNS, "circle");
-    hub.setAttribute("cx", CENTER);
-    hub.setAttribute("cy", CENTER);
-    hub.setAttribute("r", 6);
-    hub.setAttribute("fill", "#4fa3ff");
-    svg.appendChild(hub);
-
-    knobEl.appendChild(svg);
-    return svg;
-  }
-
-  function updateNeedle() {
-    const angle = angleForIndex(selectedIndex);
-    const tip = polar(angle, RADIUS - 10);
-    const needle = document.getElementById("knob-needle");
-    needle.setAttribute("x2", tip.x);
-    needle.setAttribute("y2", tip.y);
-
-    document.querySelectorAll(".knob-tick-label").forEach((el) => {
-      el.classList.toggle(
-        "active",
-        Number(el.dataset.labelIndex) === selectedIndex
-      );
+      const tick = document.createElement("div");
+      tick.className = "slider-tick";
+      const fraction = i / maxIndex;
+      tick.style.left = `calc(${thumbWidth / 2}px + (100% - ${thumbWidth}px) * ${fraction})`;
+      ticksEl.appendChild(tick);
     });
   }
 
+  function subValueHtml(label, bold, subvalue, unit) {
+    const labelClass = bold ? "sub-label sub-label-bold" : "sub-label";
+    return `<div class="sub-value"><span class="${labelClass}">${label}</span><span class="sub-num">${subvalue}${unit ? " " + unit : ""}</span></div>`;
+  }
+
+  // Returns the rendered value HTML, or null if the field's row should be
+  // omitted entirely (no-detail mode, no starred sublabel to fall back on).
+  function formatValue(field, value, detail) {
+    const unit = field.unit;
+    if (value !== null && typeof value === "object") {
+      const entries = Object.entries(value).map(([sublabel, subvalue]) => {
+        const bold = sublabel.startsWith("*");
+        return { label: bold ? sublabel.slice(1) : sublabel, bold, subvalue };
+      });
+
+      if (detail) {
+        return entries
+          .map((e) => subValueHtml(e.label, e.bold, e.subvalue, unit))
+          .join("");
+      }
+
+      const starred = entries.filter((e) => e.bold);
+      if (starred.length === 0) {
+        return null;
+      }
+      if (starred.length === 1) {
+        return `${starred[0].subvalue}${unit ? " " + unit : ""}`;
+      }
+      return starred
+        .map((e) => subValueHtml(e.label, e.bold, e.subvalue, unit))
+        .join("");
+    }
+    return `${value}${unit ? " " + unit : ""}`;
+  }
+
+  function buildRowsHtml(row, detail) {
+    return screwFields
+      .map((f) => {
+        const valueHtml = formatValue(f, row[f.key], detail);
+        if (valueHtml === null) return "";
+        return `<tr><td>${f.label}</td><td>${valueHtml}</td></tr>`;
+      })
+      .join("");
+  }
+
+  // Both the detail and compact tables are rendered at once, stacked in the
+  // same grid cell with the inactive one hidden via visibility (not
+  // display), so the panel always reserves the taller detail table's height
+  // and toggling "Show detail" never resizes the surrounding layout.
   function renderPanel() {
     const row = screwData[selectedIndex];
     readoutEl.textContent = row.size;
 
-    const rowsHtml = screwFields
-      .map(
-        (f) =>
-          `<tr><td>${f.label}</td><td>${row[f.key]} ${f.unit}</td></tr>`
-      )
-      .join("");
+    const detailRows = buildRowsHtml(row, true);
+    const compactRows = buildRowsHtml(row, false);
 
     panelEl.innerHTML = `
-      <table>
-        <caption>${row.size} — major ⌀ ${row.size.replace("M", "")} mm</caption>
-        <tbody>${rowsHtml}</tbody>
-      </table>
+      <div class="spec-panel-stack">
+        <table class="${showDetail ? "" : "spec-hidden"}">
+          <tbody>${detailRows}</tbody>
+        </table>
+        <table class="${showDetail ? "spec-hidden" : ""}">
+          <tbody>${compactRows}</tbody>
+        </table>
+      </div>
     `;
   }
 
   function setIndex(i) {
-    selectedIndex = Math.max(0, Math.min(screwData.length - 1, i));
-    updateNeedle();
+    selectedIndex = Math.max(0, Math.min(maxIndex, i));
+    sliderEl.value = String(selectedIndex);
     renderPanel();
-    svgEl.setAttribute("aria-valuenow", String(selectedIndex));
-    svgEl.setAttribute("aria-valuetext", screwData[selectedIndex].size);
   }
 
-  const svgEl = buildKnobSvg();
+  buildTicks();
 
-  // Pointer drag rotation
-  let dragging = false;
-
-  function angleFromPointer(evt) {
-    const rect = svgEl.getBoundingClientRect();
-    const scale = SVG_SIZE / rect.width;
-    const x = (evt.clientX - rect.left) * scale - CENTER;
-    const y = (evt.clientY - rect.top) * scale - CENTER;
-    let deg = (Math.atan2(y, x) * 180) / Math.PI + 90;
-    if (deg > 180) deg -= 360;
-    if (deg < -180) deg += 360;
-    return deg;
-  }
-
-  function nearestIndexForAngle(deg) {
-    const clamped = Math.max(START_DEG, Math.min(START_DEG + SWEEP_DEG, deg));
-    const ratio = (clamped - START_DEG) / SWEEP_DEG;
-    return Math.round(ratio * (screwData.length - 1));
-  }
-
-  svgEl.addEventListener("pointerdown", (evt) => {
-    dragging = true;
-    svgEl.setPointerCapture(evt.pointerId);
-    setIndex(nearestIndexForAngle(angleFromPointer(evt)));
+  sliderEl.addEventListener("input", () => {
+    setIndex(Number(sliderEl.value));
   });
 
-  svgEl.addEventListener("pointermove", (evt) => {
-    if (!dragging) return;
-    setIndex(nearestIndexForAngle(angleFromPointer(evt)));
-  });
-
-  svgEl.addEventListener("pointerup", () => {
-    dragging = false;
-  });
-
-  svgEl.addEventListener("keydown", (evt) => {
-    if (evt.key === "ArrowRight" || evt.key === "ArrowUp") {
-      evt.preventDefault();
-      setIndex(selectedIndex + 1);
-    } else if (evt.key === "ArrowLeft" || evt.key === "ArrowDown") {
-      evt.preventDefault();
-      setIndex(selectedIndex - 1);
-    }
-  });
-
-  svgEl.addEventListener(
+  sliderEl.addEventListener(
     "wheel",
     (evt) => {
       evt.preventDefault();
@@ -192,6 +127,11 @@
     },
     { passive: false }
   );
+
+  detailToggleEl.addEventListener("change", () => {
+    showDetail = detailToggleEl.checked;
+    renderPanel();
+  });
 
   setIndex(selectedIndex);
 })();
