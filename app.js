@@ -8,6 +8,9 @@
   const minLabelEl = document.getElementById("slider-min-label");
   const maxLabelEl = document.getElementById("slider-max-label");
   const panelEl = document.getElementById("spec-panel");
+  const shcsPanelEl = document.getElementById("shcs-spec-panel");
+  const fhcsPanelEl = document.getElementById("fhcs-spec-panel");
+  const bhcsPanelEl = document.getElementById("bhcs-spec-panel");
   const detailToggleEl = document.getElementById("detail-toggle");
 
   let showDetail = false;
@@ -84,10 +87,10 @@
     return `${value}${unit ? " " + unit : ""}`;
   }
 
-  function buildRowsHtml(row, detail) {
-    return screwFields
+  function buildRowsHtml(data, fields, detail) {
+    return fields
       .map((f) => {
-        const valueHtml = formatValue(f, row[f.key], detail);
+        const valueHtml = formatValue(f, data[f.key], detail);
         if (valueHtml === null) return "";
         return `<tr><td>${f.label}</td><td>${valueHtml}</td></tr>`;
       })
@@ -98,14 +101,11 @@
   // same grid cell with the inactive one hidden via visibility (not
   // display), so the panel always reserves the taller detail table's height
   // and toggling the detail slider never resizes the surrounding layout.
-  function renderPanel() {
-    const row = screwData[selectedIndex];
-    readoutEl.textContent = row.size;
+  function renderSpecPanel(el, data, fields) {
+    const detailRows = buildRowsHtml(data, fields, true);
+    const compactRows = buildRowsHtml(data, fields, false);
 
-    const detailRows = buildRowsHtml(row, true);
-    const compactRows = buildRowsHtml(row, false);
-
-    panelEl.innerHTML = `
+    el.innerHTML = `
       <div class="spec-panel-stack">
         <table class="${showDetail ? "" : "spec-hidden"}">
           <tbody>${detailRows}</tbody>
@@ -115,6 +115,16 @@
         </table>
       </div>
     `;
+  }
+
+  function renderPanel() {
+    const row = screwData[selectedIndex];
+    readoutEl.textContent = row.size;
+
+    renderSpecPanel(panelEl, row, screwFields);
+    renderSpecPanel(shcsPanelEl, row.SHCS, shcsFields);
+    renderSpecPanel(fhcsPanelEl, row.FHCS, fhcsFields);
+    renderSpecPanel(bhcsPanelEl, row.BHCS, bhcsFields);
   }
 
   function setIndex(i) {
