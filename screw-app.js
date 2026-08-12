@@ -1,5 +1,5 @@
 // Renders the size slider (native range input, driven by screwData) and the
-// side spec panel. See data.js to edit the underlying table.
+// side spec panel. See screw-data.js to edit the underlying table.
 
 (function () {
   const sliderEl = document.getElementById("size-slider");

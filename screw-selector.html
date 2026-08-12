@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Mech Refs — Socket Screw Selector</title>
+  <script src="theme.js"></script>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="theme-toggle-wrap">
+      <label class="theme-switch">
+        <span class="theme-switch-icon" aria-hidden="true">☀</span>
+        <input type="checkbox" id="theme-toggle" aria-label="Toggle dark mode" />
+        <span class="theme-switch-track"><span class="theme-switch-thumb"></span></span>
+        <span class="theme-switch-icon" aria-hidden="true">☾</span>
+      </label>
+    </div>
+    <h1>Mech Refs</h1>
+  </header>
+
+  <main>
+    <section class="chart-card">
+      <nav class="tab-nav" aria-label="Reference tool selection">
+        <ul>
+          <li><a href="screw-selector.html" class="tab-nav-link" aria-current="page">Socket Screw Selector</a></li>
+          <li><a href="nut-selector.html" class="tab-nav-link">Nut Selector</a></li>
+          <li><a href="washer-selector.html" class="tab-nav-link">Washer Selector</a></li>
+        </ul>
+      </nav>
+      <div class="chart-card-header">
+        <h2>Socket Screw Selector</h2>
+        <h3>(ISO 262, ISO 273, ISO 2306, ISO 4762, ISO 7380, ISO 10642)</h3>
+      </div>
+      <div class="chart-layout">
+        <div class="slider-sticky">
+          <div class="slider-block">
+            <div id="size-readout" class="size-readout">M6</div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="size-slider"
+                class="size-slider"
+                min="0"
+                max="14"
+                step="1"
+                value="6"
+                aria-label="Select major diameter"
+              />
+              <div id="slider-ticks" class="slider-ticks"></div>
+              <div class="slider-endpoints">
+                <span id="slider-min-label"></span>
+                <span id="slider-max-label"></span>
+              </div>
+            </div>
+            <label class="detail-toggle">
+              <input type="checkbox" id="detail-toggle" />
+              I Crave<br />Detail!
+            </label>
+          </div>
+        </div>
+        <div class="spec-group">
+          <h3 class="spec-group-title">Thread and Hole Dimensions</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/screw/thread-diagram.svg"
+                alt="ISO metric thread diagram"
+                class="diagram-image"
+              />
+            </div>
+            <div id="spec-panel" class="spec-panel"></div>
+          </div>
+        </div>
+        <div class="spec-group">
+          <h3 class="spec-group-title">Socket Head Cap Screw - ISO 4762 - SHCS</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/screw/shcs-diagram.svg"
+                alt="Socket head cap screw diagram"
+                class="diagram-image"
+              />
+            </div>
+            <div id="shcs-spec-panel" class="spec-panel"></div>
+          </div>
+          <div id="shcs-length-chart" class="length-chart"></div>
+        </div>
+        <div class="spec-group">
+          <h3 class="spec-group-title">Flat Head Cap Screw - ISO 10642 - FHCS</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/screw/fhcs-diagram.svg"
+                alt="Flat head cap screw diagram"
+                class="diagram-image"
+              />
+            </div>
+            <div id="fhcs-spec-panel" class="spec-panel"></div>
+          </div>
+          <div id="fhcs-length-chart" class="length-chart"></div>
+        </div>
+        <div class="spec-group">
+          <h3 class="spec-group-title">Button Head Cap Screw - ISO 7380 - BHCS</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/screw/bhcs-diagram.svg"
+                alt="Button head cap screw diagram"
+                class="diagram-image"
+              />
+            </div>
+            <div id="bhcs-spec-panel" class="spec-panel"></div>
+          </div>
+          <div id="bhcs-length-chart" class="length-chart"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>Made by Eric: <a href="https://ericwong.design" target="_blank" rel="noopener">ericwong.design</a></p>
+  </footer>
+
+  <script src="screw-data.js"></script>
+  <script src="screw-app.js"></script>
+</body>
+</html>

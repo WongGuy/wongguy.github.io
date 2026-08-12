@@ -1,13 +1,13 @@
 // Reference data for the ISO metric screw thread chart.
 // EDITING THIS TABLE: the screwData array is generated — don't hand-edit it.
 // It's produced by scripts/generate_screw_data.py from the standards CSVs in
-// assets/standards/ISO/ (ISO 262 pitch/inclusion, ISO 2306 tap drills,
+// assets/standards/ISO/screw/ (ISO 262 pitch/inclusion, ISO 2306 tap drills,
 // ISO 273 clearance holes, ISO 4762/10642/7380 SHCS/FHCS/BHCS geometry and
 // lengths). To add, remove, or correct a value, edit the relevant CSV and
 // rerun `python scripts/generate_screw_data.py`. Which sizes appear at all
 // is controlled by the "Include?" column in the ISO 262 CSV. Field names
-// (the object keys) are what show up as row labels in app.js, so keep them
-// matching between the two files if you change the render logic.
+// (the object keys) are what show up as row labels in screw-app.js, so keep
+// them matching between the two files if you change the render logic.
 //
 // SUBLABELS: a field's value can be either a single number/string, or an
 // object of { sublabel: value } to show several variants under one label.
@@ -15,7 +15,7 @@
 // pitch and tapDrill use it to show Coarse/Fine/ExtraFine thread series —
 // Fine and ExtraFine are "-" for sizes where ISO 262 doesn't define that
 // series. The panel renders each sublabel as its own line under the field's
-// row — no changes to app.js needed for this.
+// row — no changes to screw-app.js needed for this.
 //
 // To bold a sublabel (e.g. to call out the default/standard variant), prefix
 // its key with "*", e.g. { "*Coarse": 1.0, Fine: 0.75 }. The "*" is stripped
@@ -30,10 +30,10 @@
 // LENGTHS: each SHCS/FHCS/BHCS object also carries a `lengths` array of
 // { length, threaded } pairs (both in mm), taken directly from that
 // standard's own threaded-length table — the standard lengths that head
-// style is available in, and how much of each is threaded. app.js renders
-// this as a horizontal chart under that type's table/diagram; when length
-// and threaded are equal (fully threaded), the two cells are merged into
-// one.
+// style is available in, and how much of each is threaded. screw-app.js
+// renders this as a horizontal chart under that type's table/diagram; when
+// length and threaded are equal (fully threaded), the two cells are merged
+// into one.
 
 const screwData = [
   {

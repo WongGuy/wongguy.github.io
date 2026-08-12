@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Regenerates the `screwData` array in data.js from the ISO standard CSVs
-checked into assets/standards/ISO/.
+"""Regenerates the `screwData` array in screw-data.js from the ISO standard CSVs
+checked into assets/standards/ISO/screw/.
 
-Run with no arguments to rewrite data.js in place:
+Run with no arguments to rewrite screw-data.js in place:
 
     python scripts/generate_screw_data.py
 
@@ -26,7 +26,7 @@ Design notes
 - Head-style (SHCS/FHCS/BHCS) dimensions and lengths are optional per size:
   if a size doesn't appear in a given standard's "Screw Dimensions" CSV, its
   block is filled with "-" placeholders and an empty lengths array, matching
-  the existing data.js convention for head styles a size isn't offered in.
+  the existing screw-data.js convention for head styles a size isn't offered in.
 """
 import csv
 import re
@@ -34,8 +34,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-STANDARDS_DIR = ROOT / "assets" / "standards" / "ISO"
-DATA_JS = ROOT / "data.js"
+STANDARDS_DIR = ROOT / "assets" / "standards" / "ISO" / "screw"
+DATA_JS = ROOT / "screw-data.js"
 
 TRUE_VALUES = {"true", "1", "yes", "y"}
 
@@ -352,7 +352,7 @@ def main():
 
     original = DATA_JS.read_text(encoding="utf-8")
     if not SCREW_DATA_RE.search(original):
-        raise SystemExit("Could not find `const screwData = [ ... ];` block in data.js")
+        raise SystemExit("Could not find `const screwData = [ ... ];` block in screw-data.js")
     updated = SCREW_DATA_RE.sub(lambda _: block, original, count=1)
     with DATA_JS.open("w", encoding="utf-8", newline="\n") as f:
         f.write(updated)
