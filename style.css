@@ -401,6 +401,10 @@ main {
   border: 1px solid var(--panel-border);
 }
 
+:root[data-theme="dark"] .diagram-image {
+  filter: invert(1);
+}
+
 /* --- Side spec panel --- */
 
 .spec-panel {
