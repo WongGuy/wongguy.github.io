@@ -450,6 +450,8 @@ main {
   color: var(--text-dim);
   font-size: 0.85em;
   white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
 }
 
 .sub-label-bold {
@@ -459,6 +461,8 @@ main {
 
 .sub-num {
   white-space: nowrap;
+  flex-shrink: 0;
+  text-align: right;
 }
 
 /* --- Valid length chart --- */

@@ -49,23 +49,97 @@
     return parseFloat(raw) || 0;
   }
 
+  const measureCanvas = document.createElement("canvas");
+  function measureTextWidth(text, font, letterSpacing) {
+    const ctx = measureCanvas.getContext("2d");
+    ctx.font = font;
+    return ctx.measureText(text).width + (letterSpacing || 0) * text.length;
+  }
+
+  // Reads the font a CSS class would apply, without needing a real instance
+  // of that element on the page yet (sub-label/sub-num spans only exist once
+  // a panel has rendered at least once).
+  function getClassFontMetrics(className) {
+    const el = document.createElement("span");
+    el.className = className;
+    el.style.position = "absolute";
+    el.style.visibility = "hidden";
+    document.body.appendChild(el);
+    const style = getComputedStyle(el);
+    const metrics = {
+      font: `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`,
+      letterSpacing: parseFloat(style.letterSpacing) || 0,
+    };
+    document.body.removeChild(el);
+    return metrics;
+  }
+
   // Locks the readout box to the exact pixel width of the widest possible
   // size label at the current font (which changes across the mobile
   // breakpoint), so switching between e.g. "M6" and "M1.6" never resizes the
   // box — and therefore never steals width from the slider track next to it.
-  const measureCanvas = document.createElement("canvas");
   function updateReadoutWidth() {
     const style = getComputedStyle(readoutEl);
-    const ctx = measureCanvas.getContext("2d");
-    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
     const letterSpacing = parseFloat(style.letterSpacing) || 0;
     const maxWidth = screwData.reduce((max, row) => {
-      const width =
-        ctx.measureText(row.size).width + letterSpacing * row.size.length;
-      return Math.max(max, width);
+      return Math.max(max, measureTextWidth(row.size, font, letterSpacing));
     }, 0);
     readoutEl.style.width = `${Math.ceil(maxWidth) + 1}px`;
   }
+
+  // For every field that can render as multiple sublabel/value rows (e.g.
+  // clearanceHole's Close/Normal/Loose), pre-measure the widest sublabel and
+  // widest value across *all* sizes, not just the selected one. Applying
+  // these as fixed column widths means switching sizes only ever changes the
+  // digits — the sublabel and value never shift position to accommodate a
+  // wider or narrower number.
+  function computeSubValueWidths(panels) {
+    const labelFont = getClassFontMetrics("sub-label");
+    const labelBoldFont = getClassFontMetrics("sub-label sub-label-bold");
+    const valueFont = getClassFontMetrics("sub-num");
+    const widths = {};
+    panels.forEach(({ key, rows, fields }) => {
+      fields.forEach((field) => {
+        let maxLabel = 0;
+        let maxValue = 0;
+        let hasObject = false;
+        rows.forEach((row) => {
+          const value = row[field.key];
+          if (value === null || typeof value !== "object") return;
+          hasObject = true;
+          Object.entries(value).forEach(([sublabel, subvalue]) => {
+            const bold = sublabel.startsWith("*");
+            const label = bold ? sublabel.slice(1) : sublabel;
+            const font = bold ? labelBoldFont : labelFont;
+            maxLabel = Math.max(
+              maxLabel,
+              measureTextWidth(label, font.font, font.letterSpacing)
+            );
+            const valueText = `${subvalue}${field.unit ? " " + field.unit : ""}`;
+            maxValue = Math.max(
+              maxValue,
+              measureTextWidth(valueText, valueFont.font, valueFont.letterSpacing)
+            );
+          });
+        });
+        if (hasObject) {
+          widths[`${key}:${field.key}`] = {
+            label: Math.ceil(maxLabel) + 1,
+            value: Math.ceil(maxValue) + 1,
+          };
+        }
+      });
+    });
+    return widths;
+  }
+
+  const subValueWidths = computeSubValueWidths([
+    { key: "screw", rows: screwData, fields: screwFields },
+    { key: "SHCS", rows: screwData.map((r) => r.SHCS), fields: shcsFields },
+    { key: "FHCS", rows: screwData.map((r) => r.FHCS), fields: fhcsFields },
+    { key: "BHCS", rows: screwData.map((r) => r.BHCS), fields: bhcsFields },
+  ]);
 
   function buildTicks() {
     // The thumb's travel is inset by half its width on each side (a range
@@ -81,14 +155,16 @@
     });
   }
 
-  function subValueHtml(label, bold, subvalue, unit) {
+  function subValueHtml(label, bold, subvalue, unit, widths) {
     const labelClass = bold ? "sub-label sub-label-bold" : "sub-label";
-    return `<div class="sub-value"><span class="${labelClass}">${label}</span><span class="sub-num">${subvalue}${unit ? " " + unit : ""}</span></div>`;
+    const labelStyle = widths ? ` style="width:${widths.label}px"` : "";
+    const valueStyle = widths ? ` style="width:${widths.value}px"` : "";
+    return `<div class="sub-value"><span class="${labelClass}"${labelStyle}>${label}</span><span class="sub-num"${valueStyle}>${subvalue}${unit ? " " + unit : ""}</span></div>`;
   }
 
   // Returns the rendered value HTML, or null if the field's row should be
   // omitted entirely (no-detail mode, no starred sublabel to fall back on).
-  function formatValue(field, value, detail) {
+  function formatValue(field, value, detail, widths) {
     const unit = field.unit;
     if (value !== null && typeof value === "object") {
       const entries = Object.entries(value).map(([sublabel, subvalue]) => {
@@ -98,7 +174,7 @@
 
       if (detail) {
         return entries
-          .map((e) => subValueHtml(e.label, e.bold, e.subvalue, unit))
+          .map((e) => subValueHtml(e.label, e.bold, e.subvalue, unit, widths))
           .join("");
       }
 
@@ -110,16 +186,17 @@
         return `${starred[0].subvalue}${unit ? " " + unit : ""}`;
       }
       return starred
-        .map((e) => subValueHtml(e.label, e.bold, e.subvalue, unit))
+        .map((e) => subValueHtml(e.label, e.bold, e.subvalue, unit, widths))
         .join("");
     }
     return `${value}${unit ? " " + unit : ""}`;
   }
 
-  function buildRowsHtml(data, fields, detail) {
+  function buildRowsHtml(data, fields, detail, panelKey) {
     return fields
       .map((f) => {
-        const valueHtml = formatValue(f, data[f.key], detail);
+        const widths = subValueWidths[`${panelKey}:${f.key}`];
+        const valueHtml = formatValue(f, data[f.key], detail, widths);
         if (valueHtml === null) return "";
         return `<tr><td>${f.label}</td><td>${valueHtml}</td></tr>`;
       })
@@ -130,9 +207,9 @@
   // same grid cell with the inactive one hidden via visibility (not
   // display), so the panel always reserves the taller detail table's height
   // and toggling the detail slider never resizes the surrounding layout.
-  function renderSpecPanel(el, data, fields) {
-    const detailRows = buildRowsHtml(data, fields, true);
-    const compactRows = buildRowsHtml(data, fields, false);
+  function renderSpecPanel(el, data, fields, panelKey) {
+    const detailRows = buildRowsHtml(data, fields, true, panelKey);
+    const compactRows = buildRowsHtml(data, fields, false, panelKey);
 
     el.innerHTML = `
       <div class="spec-panel-stack">
@@ -196,10 +273,10 @@
     const row = screwData[selectedIndex];
     readoutEl.textContent = row.size;
 
-    renderSpecPanel(panelEl, row, screwFields);
-    renderSpecPanel(shcsPanelEl, row.SHCS, shcsFields);
-    renderSpecPanel(fhcsPanelEl, row.FHCS, fhcsFields);
-    renderSpecPanel(bhcsPanelEl, row.BHCS, bhcsFields);
+    renderSpecPanel(panelEl, row, screwFields, "screw");
+    renderSpecPanel(shcsPanelEl, row.SHCS, shcsFields, "SHCS");
+    renderSpecPanel(fhcsPanelEl, row.FHCS, fhcsFields, "FHCS");
+    renderSpecPanel(bhcsPanelEl, row.BHCS, bhcsFields, "BHCS");
 
     renderLengthChart(shcsLengthChartEl, row.SHCS);
     renderLengthChart(fhcsLengthChartEl, row.FHCS);
