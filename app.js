@@ -49,6 +49,24 @@
     return parseFloat(raw) || 0;
   }
 
+  // Locks the readout box to the exact pixel width of the widest possible
+  // size label at the current font (which changes across the mobile
+  // breakpoint), so switching between e.g. "M6" and "M1.6" never resizes the
+  // box — and therefore never steals width from the slider track next to it.
+  const measureCanvas = document.createElement("canvas");
+  function updateReadoutWidth() {
+    const style = getComputedStyle(readoutEl);
+    const ctx = measureCanvas.getContext("2d");
+    ctx.font = `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    const letterSpacing = parseFloat(style.letterSpacing) || 0;
+    const maxWidth = screwData.reduce((max, row) => {
+      const width =
+        ctx.measureText(row.size).width + letterSpacing * row.size.length;
+      return Math.max(max, width);
+    }, 0);
+    readoutEl.style.width = `${Math.ceil(maxWidth) + 1}px`;
+  }
+
   function buildTicks() {
     // The thumb's travel is inset by half its width on each side (a range
     // input centers the thumb within the track, it doesn't run edge-to-edge),
@@ -196,6 +214,8 @@
   }
 
   buildTicks();
+  updateReadoutWidth();
+  window.addEventListener("resize", updateReadoutWidth);
 
   sliderEl.addEventListener("input", () => {
     setIndex(Number(sliderEl.value));

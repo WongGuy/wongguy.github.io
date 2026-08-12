@@ -352,7 +352,6 @@ main {
   }
 
   .size-readout {
-    width: auto;
     margin-top: 0.55rem;
     font-size: 1.1rem;
   }
@@ -398,6 +397,7 @@ main {
 
 .spec-panel-stack {
   display: grid;
+  overflow-x: auto;
 }
 
 .spec-panel-stack > table {
@@ -433,6 +433,7 @@ main {
 .spec-panel td:last-child {
   text-align: right;
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .sub-value {
@@ -448,11 +449,16 @@ main {
 .sub-label {
   color: var(--text-dim);
   font-size: 0.85em;
+  white-space: nowrap;
 }
 
 .sub-label-bold {
   color: var(--text);
   font-weight: 700;
+}
+
+.sub-num {
+  white-space: nowrap;
 }
 
 /* --- Valid length chart --- */
