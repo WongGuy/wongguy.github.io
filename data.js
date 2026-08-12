@@ -47,7 +47,7 @@ const screwData = [
     tapDrill: { "*Coarse": "1.25", Fine: "1.4", ExtraFine: "-" },
     clearanceHole: { Close: "1.7", "*Normal": "1.8", Loose: "2.0" },
     SHCS: {
-      driverSize: "1.5", headDiam: "3.00", headHeight: "1.60", maxFilletDiam: "2.00",
+      driverSize: "1.5", headDiam: "3.00", headHeight: "1.60", transitionDiameter: "2.00",
       lengths: [
         { length: "3", threaded: "3" }, { length: "4", threaded: "4" }, { length: "5", threaded: "5" },
         { length: "6", threaded: "6" }, { length: "8", threaded: "8" }, { length: "10", threaded: "9.2" },
@@ -64,7 +64,7 @@ const screwData = [
     tapDrill: { "*Coarse": "1.6", Fine: "1.75", ExtraFine: "-" },
     clearanceHole: { Close: "2.2", "*Normal": "2.4", Loose: "2.6" },
     SHCS: {
-      driverSize: "1.5", headDiam: "3.80", headHeight: "2.00", maxFilletDiam: "2.60",
+      driverSize: "1.5", headDiam: "3.80", headHeight: "2.00", transitionDiameter: "2.60",
       lengths: [
         { length: "3", threaded: "3" }, { length: "4", threaded: "4" }, { length: "5", threaded: "5" },
         { length: "6", threaded: "6" }, { length: "8", threaded: "8" }, { length: "10", threaded: "10" },
@@ -81,7 +81,7 @@ const screwData = [
     tapDrill: { "*Coarse": "2.05", Fine: "2.15", ExtraFine: "-" },
     clearanceHole: { Close: "2.7", "*Normal": "2.9", Loose: "3.1" },
     SHCS: {
-      driverSize: "2.0", headDiam: "4.50", headHeight: "2.50", maxFilletDiam: "3.10",
+      driverSize: "2.0", headDiam: "4.50", headHeight: "2.50", transitionDiameter: "3.10",
       lengths: [
         { length: "4", threaded: "4" }, { length: "5", threaded: "5" }, { length: "6", threaded: "6" },
         { length: "8", threaded: "8" }, { length: "10", threaded: "10" }, { length: "12", threaded: "11" },
@@ -98,7 +98,7 @@ const screwData = [
     tapDrill: { "*Coarse": "2.5", Fine: "2.65", ExtraFine: "-" },
     clearanceHole: { Close: "3.2", "*Normal": "3.4", Loose: "3.6" },
     SHCS: {
-      driverSize: "2.5", headDiam: "5.50", headHeight: "3.00", maxFilletDiam: "3.60",
+      driverSize: "2.5", headDiam: "5.50", headHeight: "3.00", transitionDiameter: "3.60",
       lengths: [
         { length: "4", threaded: "4" }, { length: "5", threaded: "5" }, { length: "6", threaded: "6" },
         { length: "8", threaded: "8" }, { length: "10", threaded: "10" }, { length: "12", threaded: "12" },
@@ -132,7 +132,7 @@ const screwData = [
     tapDrill: { "*Coarse": "3.3", Fine: "3.5", ExtraFine: "-" },
     clearanceHole: { Close: "4.3", "*Normal": "4.5", Loose: "4.8" },
     SHCS: {
-      driverSize: "3.0", headDiam: "7.22", headHeight: "4.00", maxFilletDiam: "4.70",
+      driverSize: "3.0", headDiam: "7.22", headHeight: "4.00", transitionDiameter: "4.70",
       lengths: [
         { length: "5", threaded: "5" }, { length: "6", threaded: "6" }, { length: "8", threaded: "8" },
         { length: "10", threaded: "10" }, { length: "12", threaded: "12" }, { length: "16", threaded: "14" },
@@ -166,7 +166,7 @@ const screwData = [
     tapDrill: { "*Coarse": "4.2", Fine: "4.5", ExtraFine: "-" },
     clearanceHole: { Close: "5.3", "*Normal": "5.5", Loose: "5.8" },
     SHCS: {
-      driverSize: "4.0", headDiam: "8.72", headHeight: "5.00", maxFilletDiam: "5.70",
+      driverSize: "4.0", headDiam: "8.72", headHeight: "5.00", transitionDiameter: "5.70",
       lengths: [
         { length: "6", threaded: "6" }, { length: "8", threaded: "8" }, { length: "10", threaded: "10" },
         { length: "12", threaded: "12" }, { length: "16", threaded: "16" }, { length: "20", threaded: "16" },
@@ -200,7 +200,7 @@ const screwData = [
     tapDrill: { "*Coarse": "5.0", Fine: "5.2", ExtraFine: "-" },
     clearanceHole: { Close: "6.4", "*Normal": "6.6", Loose: "7.0" },
     SHCS: {
-      driverSize: "5.0", headDiam: "10.22", headHeight: "6.00", maxFilletDiam: "6.80",
+      driverSize: "5.0", headDiam: "10.22", headHeight: "6.00", transitionDiameter: "6.80",
       lengths: [
         { length: "8", threaded: "8" }, { length: "10", threaded: "10" }, { length: "12", threaded: "12" },
         { length: "16", threaded: "16" }, { length: "20", threaded: "18" }, { length: "25", threaded: "18" },
@@ -237,7 +237,7 @@ const screwData = [
     tapDrill: { "*Coarse": "6.8", Fine: "7.0", ExtraFine: "7.2" },
     clearanceHole: { Close: "8.4", "*Normal": "9.0", Loose: "10.0" },
     SHCS: {
-      driverSize: "6.0", headDiam: "13.27", headHeight: "8.00", maxFilletDiam: "9.20",
+      driverSize: "6.0", headDiam: "13.27", headHeight: "8.00", transitionDiameter: "9.20",
       lengths: [
         { length: "10", threaded: "10" }, { length: "12", threaded: "12" }, { length: "16", threaded: "16" },
         { length: "20", threaded: "20" }, { length: "25", threaded: "22" }, { length: "30", threaded: "22" },
@@ -274,7 +274,7 @@ const screwData = [
     tapDrill: { "*Coarse": "8.5", Fine: "8.8", ExtraFine: "9.0" },
     clearanceHole: { Close: "10.5", "*Normal": "11.0", Loose: "12.0" },
     SHCS: {
-      driverSize: "8.0", headDiam: "16.27", headHeight: "10.00", maxFilletDiam: "11.20",
+      driverSize: "8.0", headDiam: "16.27", headHeight: "10.00", transitionDiameter: "11.20",
       lengths: [
         { length: "12", threaded: "12" }, { length: "16", threaded: "16" }, { length: "20", threaded: "20" },
         { length: "25", threaded: "25" }, { length: "30", threaded: "26" }, { length: "35", threaded: "26" },
@@ -314,7 +314,7 @@ const screwData = [
     tapDrill: { "*Coarse": "10.2", Fine: "10.5", ExtraFine: "10.8" },
     clearanceHole: { Close: "13.0", "*Normal": "13.5", Loose: "14.5" },
     SHCS: {
-      driverSize: "10.0", headDiam: "18.27", headHeight: "12.00", maxFilletDiam: "13.70",
+      driverSize: "10.0", headDiam: "18.27", headHeight: "12.00", transitionDiameter: "13.70",
       lengths: [
         { length: "16", threaded: "16" }, { length: "20", threaded: "20" }, { length: "25", threaded: "25" },
         { length: "30", threaded: "30" }, { length: "35", threaded: "30" }, { length: "40", threaded: "30" },
@@ -354,7 +354,7 @@ const screwData = [
     tapDrill: { "*Coarse": "14.0", Fine: "14.5", ExtraFine: "-" },
     clearanceHole: { Close: "17.0", "*Normal": "17.5", Loose: "18.5" },
     SHCS: {
-      driverSize: "14.0", headDiam: "24.33", headHeight: "16.00", maxFilletDiam: "17.70",
+      driverSize: "14.0", headDiam: "24.33", headHeight: "16.00", transitionDiameter: "17.70",
       lengths: [
         { length: "20", threaded: "20" }, { length: "25", threaded: "25" }, { length: "30", threaded: "30" },
         { length: "35", threaded: "35" }, { length: "40", threaded: "38" }, { length: "45", threaded: "38" },
@@ -397,7 +397,7 @@ const screwData = [
     tapDrill: { "*Coarse": "17.5", Fine: "18.0", ExtraFine: "18.5" },
     clearanceHole: { Close: "21.0", "*Normal": "22.0", Loose: "24.0" },
     SHCS: {
-      driverSize: "17.0", headDiam: "30.33", headHeight: "20.00", maxFilletDiam: "22.40",
+      driverSize: "17.0", headDiam: "30.33", headHeight: "20.00", transitionDiameter: "22.40",
       lengths: [
         { length: "25", threaded: "25" }, { length: "30", threaded: "30" }, { length: "35", threaded: "35" },
         { length: "40", threaded: "40" }, { length: "45", threaded: "45" }, { length: "50", threaded: "46" },
@@ -429,7 +429,7 @@ const screwData = [
     tapDrill: { "*Coarse": "19.5", Fine: "20.0", ExtraFine: "20.5" },
     clearanceHole: { Close: "23.0", "*Normal": "24.0", Loose: "26.0" },
     SHCS: {
-      driverSize: "17.0", headDiam: "33.39", headHeight: "22.00", maxFilletDiam: "24.40",
+      driverSize: "17.0", headDiam: "33.39", headHeight: "22.00", transitionDiameter: "24.40",
       lengths: [
         { length: "30", threaded: "30" }, { length: "35", threaded: "35" }, { length: "40", threaded: "40" },
         { length: "45", threaded: "45" }, { length: "50", threaded: "50" }, { length: "55", threaded: "50" },
@@ -450,7 +450,7 @@ const screwData = [
     tapDrill: { "*Coarse": "21.0", Fine: "22.0", ExtraFine: "-" },
     clearanceHole: { Close: "25.0", "*Normal": "26.0", Loose: "28.0" },
     SHCS: {
-      driverSize: "19.0", headDiam: "36.39", headHeight: "24.00", maxFilletDiam: "26.40",
+      driverSize: "19.0", headDiam: "36.39", headHeight: "24.00", transitionDiameter: "26.40",
       lengths: [
         { length: "30", threaded: "30" }, { length: "35", threaded: "35" }, { length: "40", threaded: "40" },
         { length: "45", threaded: "45" }, { length: "50", threaded: "50" }, { length: "55", threaded: "54" },
@@ -471,7 +471,7 @@ const screwData = [
     tapDrill: { "*Coarse": "26.5", Fine: "28.0", ExtraFine: "-" },
     clearanceHole: { Close: "31.0", "*Normal": "33.0", Loose: "35.0" },
     SHCS: {
-      driverSize: "22.0", headDiam: "45.39", headHeight: "30.00", maxFilletDiam: "33.40",
+      driverSize: "22.0", headDiam: "45.39", headHeight: "30.00", transitionDiameter: "33.40",
       lengths: [
         { length: "40", threaded: "40" }, { length: "45", threaded: "45" }, { length: "50", threaded: "50" },
         { length: "55", threaded: "55" }, { length: "60", threaded: "60" }, { length: "65", threaded: "65" },
@@ -501,7 +501,7 @@ const shcsFields = [
   { key: "driverSize",    label: "Driver Size - Nominal",         unit: "mm" },
   { key: "headDiam",      label: "Head Diam. - MAX.",           unit: "mm" },
   { key: "headHeight",    label: "Head Height - MAX.",         unit: "mm" },
-  { key: "maxFilletDiam", label: "Max Fillet Diam.",     unit: "mm" },
+  { key: "transitionDiameter", label: "Max Transition Diam.",     unit: "mm" },
 ];
 
 // Labels and units shown in the FHCS side panel, in display order.
