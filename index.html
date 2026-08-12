@@ -5,8 +5,16 @@
   <meta http-equiv="refresh" content="0; url=screw-selector.html" />
   <link rel="canonical" href="screw-selector.html" />
   <title>Mech Refs</title>
+  <script>
+    (function () {
+      var stored = localStorage.getItem("theme");
+      var theme = stored === "light" || stored === "dark"
+        ? stored
+        : (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.style.background = theme === "dark" ? "#0B1620" : "#99D4F1";
+    })();
+  </script>
 </head>
 <body>
-  <p><a href="screw-selector.html">Continue to the Socket Screw Selector</a></p>
 </body>
 </html>
