@@ -237,8 +237,8 @@
       return `
         <table class="length-table">
           <tbody>
-            <tr><td class="length-row-label">Length</td><td class="length-cell length-empty-msg" rowspan="2">Configuration Not Supported by ISO</td></tr>
-            <tr><td class="length-row-label">Threaded</td></tr>
+            <tr><td class="length-row-label">Tot. Len</td><td class="length-cell length-empty-msg" rowspan="2">Configuration Not Supported by ISO</td></tr>
+            <tr><td class="length-row-label">Thrd. Len</td></tr>
           </tbody>
         </table>
       `;
@@ -258,8 +258,8 @@
     return `
       <table class="length-table">
         <tbody>
-          <tr><td class="length-row-label">Length</td>${lengthCells.join("")}</tr>
-          <tr><td class="length-row-label">Threaded</td>${threadedCells.join("")}</tr>
+          <tr><td class="length-row-label">Tot. Len</td>${lengthCells.join("")}</tr>
+          <tr><td class="length-row-label">Thrd. Len</td>${threadedCells.join("")}</tr>
         </tbody>
       </table>
     `;
