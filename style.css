@@ -327,6 +327,19 @@ main {
 }
 
 @media (max-width: 600px) {
+  header {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem 1rem 0.75rem;
+  }
+
+  .theme-toggle-wrap {
+    position: static;
+    align-self: flex-end;
+    margin-bottom: 0.5rem;
+  }
+
   main {
     padding: 1.5rem 0.75rem;
   }
@@ -474,11 +487,12 @@ main {
 .length-table {
   border-collapse: collapse;
   margin: 0 auto;
+  font-size: 0.85rem;
 }
 
 .length-table td {
   border: 1px solid var(--panel-border);
-  padding: 0.4rem 0.6rem;
+  padding: 0.3rem 0.4rem;
   text-align: center;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
@@ -487,7 +501,7 @@ main {
 .length-row-label {
   text-align: left;
   color: var(--text-dim);
-  padding-right: 0.75rem;
+  padding-right: 0.5rem;
 }
 
 .length-empty-msg {
