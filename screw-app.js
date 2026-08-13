@@ -159,7 +159,8 @@
     const labelClass = bold ? "sub-label sub-label-bold" : "sub-label";
     const labelStyle = widths ? ` style="width:${widths.label}px"` : "";
     const valueStyle = widths ? ` style="width:${widths.value}px"` : "";
-    return `<div class="sub-value"><span class="${labelClass}"${labelStyle}>${label}</span><span class="sub-num"${valueStyle}>${subvalue}${unit ? " " + unit : ""}</span></div>`;
+    const valueText = subvalue === "-" ? "-" : `${subvalue}${unit ? " " + unit : ""}`;
+    return `<div class="sub-value"><span class="${labelClass}"${labelStyle}>${label}</span><span class="sub-num"${valueStyle}>${valueText}</span></div>`;
   }
 
   // Returns the rendered value HTML, or null if the field's row should be
@@ -183,12 +184,14 @@
         return null;
       }
       if (starred.length === 1) {
-        return `${starred[0].subvalue}${unit ? " " + unit : ""}`;
+        const value = starred[0].subvalue;
+        return value === "-" ? "-" : `${value}${unit ? " " + unit : ""}`;
       }
       return starred
         .map((e) => subValueHtml(e.label, e.bold, e.subvalue, unit, widths))
         .join("");
     }
+    if (value === "-") return "-";
     return `${value}${unit ? " " + unit : ""}`;
   }
 
