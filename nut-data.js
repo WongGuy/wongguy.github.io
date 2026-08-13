@@ -147,33 +147,33 @@ const nutData = [
 // Labels and units shown in the Standard Nut (ISO 4032) side panel, in
 // display order. key must match a field name on the STD sub-object above.
 const stdFields = [
-  { key: "nutHeight",         label: "Nut Height - MAX.",          unit: "mm" },
-  { key: "nutWidth",          label: "Width Across Flats - MAX.",  unit: "mm" },
-  { key: "circumscribedDiam", label: "Circumscribed Diam. - MIN.", unit: "mm" },
+  { key: "nutHeight",         label: "Nut Height",          unit: "mm" },
+  { key: "nutWidth",          label: "Width Across Flats",  unit: "mm" },
+  { key: "circumscribedDiam", label: "Across Corners Dist", unit: "mm" },
 ];
 
 // Labels and units shown in the Tall Nut (ISO 4033) side panel, in display
 // order. key must match a field name on the TALL sub-object above.
 const tallFields = [
-  { key: "nutHeight",         label: "Nut Height - MAX.",          unit: "mm" },
-  { key: "nutWidth",          label: "Width Across Flats - MAX.",  unit: "mm" },
-  { key: "circumscribedDiam", label: "Circumscribed Diam. - MIN.", unit: "mm" },
+  { key: "nutHeight",         label: "Nut Height",          unit: "mm" },
+  { key: "nutWidth",          label: "Width Across Flats",  unit: "mm" },
+  { key: "circumscribedDiam", label: "Across Corners Dist", unit: "mm" },
 ];
 
 // Labels and units shown in the Thin Nut (ISO 4035) side panel, in display
 // order. key must match a field name on the THIN sub-object above.
 const thinFields = [
-  { key: "nutHeight",         label: "Nut Height - MAX.",          unit: "mm" },
-  { key: "nutWidth",          label: "Width Across Flats - MAX.",  unit: "mm" },
-  { key: "circumscribedDiam", label: "Circumscribed Diam. - MIN.", unit: "mm" },
+  { key: "nutHeight",         label: "Nut Height",          unit: "mm" },
+  { key: "nutWidth",          label: "Width Across Flats",  unit: "mm" },
+  { key: "circumscribedDiam", label: "Across Corners Dist", unit: "mm" },
 ];
 
 // Labels and units shown in the Flanged Nut (ISO 4161) side panel, in
 // display order. key must match a field name on the FLANGED sub-object
 // above.
 const flangedFields = [
-  { key: "nutHeight",         label: "Nut Height - MAX.",          unit: "mm" },
-  { key: "nutWidth",          label: "Width Across Flats - MAX.",  unit: "mm" },
-  { key: "circumscribedDiam", label: "Circumscribed Diam. - MIN.", unit: "mm" },
-  { key: "flangeDiam",        label: "Flange Diam. - MAX.",        unit: "mm" },
+  { key: "nutHeight",         label: "Nut Height",          unit: "mm" },
+  { key: "nutWidth",          label: "Width Across Flats",  unit: "mm" },
+  { key: "circumscribedDiam", label: "Across Corners Dist", unit: "mm" },
+  { key: "flangeDiam",        label: "Flange Diam.",        unit: "mm" },
 ];
