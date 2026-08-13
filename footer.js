@@ -16,4 +16,9 @@ document.addEventListener("DOMContentLoaded", () => {
   attribution.innerHTML =
     'Made by Eric: <a href="https://ericwong.design" target="_blank" rel="noopener">ericwong.design</a>';
   footer.appendChild(attribution);
+
+  const reportIssue = document.createElement("p");
+  reportIssue.innerHTML =
+    '<a href="https://github.com/WongGuy/wongguy.github.io/issues/new" target="_blank" rel="noopener">Report Issue</a>';
+  footer.appendChild(reportIssue);
 });
