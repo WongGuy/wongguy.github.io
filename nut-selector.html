@@ -32,13 +32,92 @@
       </nav>
       <div class="chart-card-header">
         <h2>Nut Selector</h2>
+        <h3>(ISO 4032, ISO 4033, ISO 4035, ISO 4161)</h3>
       </div>
-      <p class="placeholder-text">Coming soon.</p>
+      <div class="chart-layout">
+        <div class="slider-sticky">
+          <div class="slider-block">
+            <div id="size-readout" class="size-readout">M6</div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="size-slider"
+                class="size-slider"
+                min="0"
+                max="13"
+                step="1"
+                value="6"
+                aria-label="Select thread diameter"
+              />
+              <div id="slider-ticks" class="slider-ticks"></div>
+              <div class="slider-endpoints">
+                <span id="slider-min-label"></span>
+                <span id="slider-max-label"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="spec-group">
+          <h3 class="spec-group-title">Standard Nut - ISO 4032</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/nut/std-diagram.svg"
+                alt="Standard nut diagram"
+                class="diagram-image"
+              />
+            </div>
+            <div id="std-spec-panel" class="spec-panel"></div>
+          </div>
+        </div>
+        <div class="spec-group">
+          <h3 class="spec-group-title">Tall Nut - ISO 4033</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/nut/tall-diagram.svg"
+                alt="Tall nut diagram"
+                class="diagram-image"
+              />
+            </div>
+            <div id="tall-spec-panel" class="spec-panel"></div>
+          </div>
+        </div>
+        <div class="spec-group">
+          <h3 class="spec-group-title">Thin Nut - ISO 4035</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/nut/thin-diagram.svg"
+                alt="Thin nut diagram"
+                class="diagram-image"
+              />
+            </div>
+            <div id="thin-spec-panel" class="spec-panel"></div>
+          </div>
+        </div>
+        <div class="spec-group">
+          <h3 class="spec-group-title">Flanged Nut - ISO 4161</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/nut/flanged-diagram.svg"
+                alt="Flanged nut diagram"
+                class="diagram-image"
+              />
+            </div>
+            <div id="flanged-spec-panel" class="spec-panel"></div>
+          </div>
+        </div>
+      </div>
     </section>
   </main>
 
   <footer>
     <p>Made by Eric: <a href="https://ericwong.design" target="_blank" rel="noopener">ericwong.design</a></p>
   </footer>
+
+  <script src="nut-data.js"></script>
+  <script src="nut-app.js"></script>
 </body>
 </html>

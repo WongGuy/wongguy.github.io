@@ -314,6 +314,7 @@ main {
   margin: 0;
   background: transparent;
   cursor: grab;
+  touch-action: none;
 }
 
 .size-slider:active {

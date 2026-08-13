@@ -1,0 +1,18 @@
+<svg width="121.92mm" height="91.44mm"
+ xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"  xml:space="preserve"
+ viewBox="0 0 1440 1080"
+ xmlns:xfa="http://www.xfa.org/schema/xfa-data/1.0/" >
+<g fill="none" stroke="black" stroke-width="1" fill-rule="evenodd" stroke-linecap="square" stroke-linejoin="bevel" >
+<g fill="none" stroke="#000000" stroke-opacity="1" stroke-width="2" stroke-linecap="square" stroke-linejoin="bevel" transform="matrix(1,0,0,1,0,0)">
+<rect x="0" y="0" width="1440" height="1080"/>
+</g>
+<g fill="none" stroke="#000000" stroke-opacity="1" stroke-width="2" stroke-dasharray="12,12" stroke-linecap="square" stroke-linejoin="bevel" transform="matrix(1,0,0,1,0,0)">
+<line x1="0" y1="0" x2="1440" y2="1080"/>
+<line x1="1440" y1="0" x2="0" y2="1080"/>
+</g>
+<g fill="#000000" fill-opacity="1" stroke="none" xml:space="preserve" font-family="sans-serif" font-size="48" font-style="normal" font-weight="normal" text-anchor="middle">
+<text x="720" y="558">Flanged Nut - ISO 4161</text>
+<text x="720" y="618">diagram placeholder</text>
+</g>
+</g>
+</svg>
