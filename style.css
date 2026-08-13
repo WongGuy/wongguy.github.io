@@ -140,10 +140,17 @@ main {
 .tab-nav li {
   flex: 1 1 0;
   min-width: max-content;
+  position: relative;
 }
 
-.tab-nav li + li {
-  border-left: 1px solid var(--panel-border);
+.tab-nav li + li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: -1px;
+  left: 0;
+  width: 1px;
+  background: var(--panel-border);
 }
 
 .tab-nav-link {
