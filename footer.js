@@ -21,4 +21,9 @@ document.addEventListener("DOMContentLoaded", () => {
   reportIssue.innerHTML =
     '<a href="https://github.com/WongGuy/wongguy.github.io/issues/new" target="_blank" rel="noopener">Report Issue</a>';
   footer.appendChild(reportIssue);
+
+  const disclaimer = document.createElement("p");
+  disclaimer.textContent =
+    "These are reference values only and may contain errors. Verify against the applicable standard before use in critical applications.";
+  footer.appendChild(disclaimer);
 });

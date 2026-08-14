@@ -8,50 +8,48 @@
 // <pre> flowchart text.
 
 const nutFlowchart =
-`                 
-
-[No Locking Feature]
- ├─►[No Flange]       Coarse   | Fine 
- │   ├─ Thin   ─────► ISO 4035 | 8675
- │   ├─ Normal ─────► ISO 4032 | 8673
- │   └─ Tall   ─────► ISO 4033 | 8674
- └─►[Flange]   ─────► ISO 4161 | 10663
+`[No Locking Feature]
+ ├─►[No Flange]       Coarse            | Fine
+ │   ├─ Thin   ─────► ISO 4035  M1.6-64 | 8675  M8-64
+ │   ├─ Normal ─────► ISO 4032  M5-39   | 8673  M8-39
+ │   └─ Tall   ─────► ISO 4033  M5-39   | 8674  M8-39
+ └─►[Flange]   ─────► ISO 4161  M5-20   | 10663 M8-20
 
 [Locking Feature]
  ├─►[No Flange]
  │   ├─►[Nylon Insert]
- │   │   ├─ Thin   ─► ISO 10511| NONE
- │   │   ├─ Normal ─► ISO 7040 | 10512
- │   │   └─ Tall   ─► ISO 7041 | NONE
- │   └─►[Metal Insert] 
- │       ├─ Normal ─► ISO 7719 | NONE
- │       ├─ Tall   ─► ISO 7042 | 10513
- │       └─ Taller ─► ISO 7720†| NONE
+ │   │   ├─ Thin   ─► ISO 10511 M3-39   | NONE
+ │   │   ├─ Normal ─► ISO 7040  M3-39   | 10512 M8-39
+ │   │   └─ Tall   ─► ISO 7041  M5-39   | NONE
+ │   └─►[Metal Insert]
+ │       ├─ Normal ─► ISO 7719  M5-39   | NONE
+ │       ├─ Tall   ─► ISO 7042  M5-39   | 10513 M8-39
+ │       └─ Taller ─► ISO 7720† M5-39   | NONE
  └─►[Flange]
-     ├─ Nylon ──────► ISO 7043 | 12125
-     └─ Metal ──────► ISO 7044 | 12126`;
-
+     ├─ Nylon ──────► ISO 7043  M5-20   | 12125 M8-20
+     └─ Metal ──────► ISO 7044  M5-20   | 12126 M8-20`;
+ 
 const nutFlowchartSimple =
 `[No Locking Feature] 
  ├─►[No Flange]
- │   ├─ Thin   ─► ISO 4035
- │   ├─ Normal ─► ISO 4032
- │   └─ Tall   ─► ISO 4033
- └─►[Flange]   ─► ISO 4161
- 
-[Locking Feature] 
+ │   ├─ Thin   ─────► ISO 4035  M1.6-64
+ │   ├─ Normal ─────► ISO 4032  M5-39
+ │   └─ Tall   ─────► ISO 4033  M5-39
+ └─►[Flange]   ─────► ISO 4161  M5-20
+
+[Locking Feature]
  ├─►[No Flange]
  │   ├─►[Nylon Insert]
- │   │   ├─ Thin   ─► ISO 10511
- │   │   ├─ Normal ─► ISO 7040
- │   │   └─ Tall   ─► ISO 7041
+ │   │   ├─ Thin   ─► ISO 10511 M3-39
+ │   │   ├─ Normal ─► ISO 7040  M3-39
+ │   │   └─ Tall   ─► ISO 7041  M5-39
  │   └─►[Metal Insert]
- │       ├─ Normal ─► ISO 7719
- │       ├─ Tall   ─► ISO 7042
- │       └─ Taller ─► ISO 7720†
+ │       ├─ Normal ─► ISO 7719  M5-39
+ │       ├─ Tall   ─► ISO 7042  M5-39
+ │       └─ Taller ─► ISO 7720† M5-39
  └─►[Flange]
-     ├─ Nylon ─► ISO 7043
-     └─ Metal ─► ISO 7044`;
+     ├─ Nylon ──────► ISO 7043  M5-20
+     └─ Metal ──────► ISO 7044  M5-20`;
 
 const nutFlowchartDisclaimer =
 `†In 2025, ISO completely changed the title of ISO 7720. See, in 1983, ISO 7720 was named "Prevailing torque type all-metal hexagon nuts, style 2 — Property class 9". On the surface, this looks like a Class 9 extension to ISO 7042 (which supported class 5, 8, 10 and 12). Now, you may be wondering, why would ISO issue an entire new standard for this instead of updating ISO 7042 to include class 9? I think a hint lies in the fact that the two specs have slightly different nut heights and wrenching heights. I had never seen or used class 9 fasteners before researching this, but it appears that class 9 was mostly used in European automotive. This suggests to me that 7720 might have been added to accomodate the European auto industry, absorbing an existing standard they used, and in doing so, absorbing a slightly different set of nut dimensions resulting in a different ISO number. But even if all that was the case, why would ISO change the title of this standard? In 2025, ISO 7720 was retitled "Fasteners — Prevailing torque hexagon nuts — High nuts (all metal) with slot(s)", something completely diffent. Why not just withdraw the standard, as they have done with many nut standards before, and put out a new one for this taller nut with a slotted collar? I am not entirely sure. It's possible that when 7720 was first defined, that in addition to being a slightly different height, it had a different locking mechanism, and that the title has been changed to describe the locking mechanism and not the class. This generally tracks with ISO's desire to separate dimensions and classes into separate standards. If you have any insider knowledge on this, contact me via the github issues page. Please. I am unwilling to pay $65.88 to purchase the full standard and find out.`;
@@ -97,8 +95,8 @@ const nutFlowchartDisclaimerSimple =
     let html = escapeHtml(text);
     for (const [number, id] of Object.entries(linkedStandards)) {
       html = html.replace(
-        new RegExp(`ISO ${number}(?!\\d)`, "g"),
-        `<a href="#${id}">ISO ${number}</a>`
+        new RegExp(`(ISO )(${number})(?!\\d)`, "g"),
+        `$1<a href="#${id}">$2</a>`
       );
     }
     html = html.replace(/†/g, `<a href="#flowchart-disclaimer">†</a>`);
