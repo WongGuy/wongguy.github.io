@@ -22,7 +22,8 @@
   maxLabelEl.textContent = screwData[maxIndex].size;
 
   const SLIDER_STORAGE_KEY = "screwSliderIndex";
-  const DETAIL_STORAGE_KEY = "screwDetailEnabled";
+  // Shared (not screw-prefixed) so the detail toggle stays in sync across tools.
+  const DETAIL_STORAGE_KEY = "detailEnabled";
 
   function getStoredIndex() {
     const stored = Number(localStorage.getItem(SLIDER_STORAGE_KEY));

@@ -287,6 +287,13 @@ main {
   white-space: pre;
 }
 
+.flowchart-disclaimer {
+  margin: 0.5rem 0 0;
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  font-style: italic;
+}
+
 /* --- Size slider --- */
 
 .slider-sticky {
