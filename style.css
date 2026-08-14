@@ -289,18 +289,13 @@ main {
   font-size: 0.8rem;
   line-height: 1;
   white-space: pre;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 .flowchart a {
   color: var(--accent);
   text-decoration: none;
-  border-bottom: 1px dotted var(--accent);
-}
-
-.flowchart a:hover,
-.flowchart a:focus-visible {
-  text-decoration: none;
-  border-bottom-style: solid;
 }
 
 .flowchart-disclaimer {
@@ -662,4 +657,8 @@ footer {
   color: var(--text-dim);
   font-size: 0.8rem;
   padding: 2rem 1rem;
+}
+
+footer a {
+  text-decoration: none;
 }
