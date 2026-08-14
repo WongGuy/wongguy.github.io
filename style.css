@@ -252,6 +252,7 @@ main {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  scroll-margin-top: 6rem;
 }
 
 .spec-group + .spec-group {
@@ -285,6 +286,18 @@ main {
   font-size: 0.8rem;
   line-height: 1.4;
   white-space: pre;
+}
+
+.flowchart a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--accent);
+}
+
+.flowchart a:hover,
+.flowchart a:focus-visible {
+  text-decoration: none;
+  border-bottom-style: solid;
 }
 
 .flowchart-disclaimer {
