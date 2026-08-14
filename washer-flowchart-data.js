@@ -5,9 +5,6 @@
 const washerFlowchart =
 `What is going through the washer?
 
-[Clevis Pin] ──────► ISO 8738   ⌀3-100
-[Captive Screw] ───► ISO 10673  M2-M12
-
 [Regular Bolt/Screw, Up to Class 10.9]
 (Grade A Washers, Default)
  ├─ Small ─────────► ISO 7092   M1.6-M36
@@ -20,7 +17,10 @@ const washerFlowchart =
 (Grade C Washers)
  ├─ Normal ────────► ISO 7091   M1.6-M64
  ├─ Large ─────────► ISO 7093-2 M3-M36
- └─ Extra large ───► ISO 7094   M5-M36`; 
+ └─ Extra large ───► ISO 7094   M5-M36
+
+[Clevis Pin] ──────► ISO 8738   ⌀3-100
+[Captive Screw] ───► ISO 10673  M2-M12`; 
 (function () {
   const flowchartEl = document.getElementById("flowchart");
   flowchartEl.textContent = washerFlowchart;
