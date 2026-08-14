@@ -278,13 +278,16 @@ main {
 
 .flowchart {
   margin: 0;
+  width: fit-content;
+  min-width: 100%;
+  box-sizing: border-box;
   padding: 1rem;
   background: var(--accent-dim);
   border: 1px solid var(--panel-border);
   color: var(--text);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
   font-size: 0.8rem;
-  line-height: 1.4;
+  line-height: 1;
   white-space: pre;
 }
 
@@ -305,6 +308,21 @@ main {
   color: var(--text-dim);
   font-size: 0.75rem;
   font-style: italic;
+}
+
+.flowchart-disclaimer:target {
+  animation: flowchart-disclaimer-highlight 2s ease-out;
+}
+
+@keyframes flowchart-disclaimer-highlight {
+  from {
+    background: var(--accent-dim);
+    outline: 2px solid var(--accent);
+  }
+  to {
+    background: transparent;
+    outline-color: transparent;
+  }
 }
 
 /* --- Size slider --- */
