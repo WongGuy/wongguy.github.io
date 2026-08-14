@@ -96,6 +96,9 @@ header p {
   height: 18px;
   flex-shrink: 0;
   background: var(--accent);
+}
+
+.theme-switch.interacted .theme-switch-thumb {
   transition: transform 0.15s ease;
 }
 
@@ -266,6 +269,22 @@ main {
   font-weight: 700;
   color: var(--text-dim);
   text-align: center;
+}
+
+.flowchart-wrap {
+  overflow-x: auto;
+}
+
+.flowchart {
+  margin: 0;
+  padding: 1rem;
+  background: var(--accent-dim);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  white-space: pre;
 }
 
 /* --- Size slider --- */

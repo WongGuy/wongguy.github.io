@@ -29,6 +29,7 @@
       document.documentElement.getAttribute("data-theme") === "dark";
 
     toggle.addEventListener("change", () => {
+      toggle.closest(".theme-switch")?.classList.add("interacted");
       const theme = toggle.checked ? "dark" : "light";
       applyTheme(theme);
       localStorage.setItem(STORAGE_KEY, theme);
