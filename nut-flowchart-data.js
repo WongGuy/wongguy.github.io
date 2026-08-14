@@ -9,52 +9,52 @@
 
 const nutFlowchart =
 `Do you need a locking feature?
-├─ No  ─► Do you need a flange?
-│         ├─ No  ─► What nut height?
-│         │         ├─ Thin   ─► Coarse: ISO 4035 | Fine: ISO 8675
-│         │         ├─ Normal ─► Coarse: ISO 4032 | Fine: ISO 8673
-│         │         └─ Tall   ─► Coarse: ISO 4033 | Fine: ISO 8674
-│         └─ Yes ─► Coarse: ISO 4161 | Fine: ISO 10663
+├─ N ─► Do you need a flange?
+│       ├─ N ─► What nut height?
+│       │       ├─ Thin   ─► Coarse: ISO 4035 | Fine: ISO 8675
+│       │       ├─ Normal ─► Coarse: ISO 4032 | Fine: ISO 8673
+│       │       └─ Tall   ─► Coarse: ISO 4033 | Fine: ISO 8674
+│       └─ Y ─► Coarse: ISO 4161 | Fine: ISO 10663
 │
-└─ Yes ─► Do you need a flange?
-          ├─ No  ─► What type of insert?
-          │         ├─ Nylon ─► What nut height?
-          │         │           ├─ Thin   ─► Coarse: ISO 10511 | Fine: NO
-          │         │           ├─ Normal ─► Coarse: ISO 7040  | Fine: ISO 10512
-          │         │           └─ Tall   ─► Coarse: ISO 7041  | Fine: NO
-          │         └─ Metal ─► What nut height?
-          │                     ├─ Normal ─► Coarse: ISO 7719  | Fine: NO
-          │                     ├─ Tall   ─► Coarse: ISO 7042  | Fine: ISO 10513
-          │                     └─ Taller ─► Coarse: ISO 7720† | Fine: NO
-          └─ Yes ─► What type of insert?
-                    ├─ Nylon ─► Coarse: ISO 7043 | Fine: ISO 12125
-                    └─ Metal ─► Coarse: ISO 7044 | Fine: ISO 12126`;
+└─ Y ─► Do you need a flange?
+        ├─ N ─► What type of insert?
+        │       ├─ Nylon ─► What nut height?
+        │       │           ├─ Thin   ─► Coarse: ISO 10511 | Fine: NO
+        │       │           ├─ Normal ─► Coarse: ISO 7040  | Fine: ISO 10512
+        │       │           └─ Tall   ─► Coarse: ISO 7041  | Fine: NO
+        │       └─ Metal ─► What nut height?
+        │                   ├─ Normal ─► Coarse: ISO 7719  | Fine: NO
+        │                   ├─ Tall   ─► Coarse: ISO 7042  | Fine: ISO 10513
+        │                   └─ Taller ─► Coarse: ISO 7720† | Fine: NO
+        └─ Y ─► What type of insert?
+                ├─ Nylon ─► Coarse: ISO 7043 | Fine: ISO 12125
+                └─ Metal ─► Coarse: ISO 7044 | Fine: ISO 12126`;
 
 const nutFlowchartSimple =
 `Do you need a locking feature?
-├─ No  ─► Do you need a flange?
-│         ├─ No  ─► What nut height?
-│         │         ├─ Thin   ─► ISO 4035
-│         │         ├─ Normal ─► ISO 4032
-│         │         └─ Tall   ─► ISO 4033
-│         └─ Yes ─► ISO 4161
+├─ N ─► Do you need a flange?
+│       ├─ N ─► What nut height?
+│       │       ├─ Thin   ─► ISO 4035
+│       │       ├─ Normal ─► ISO 4032
+│       │       └─ Tall   ─► ISO 4033
+│       └─ Y ─► ISO 4161
 │
-└─ Yes ─► Do you need a flange?
-          ├─ No  ─► What type of insert?
-          │         ├─ Nylon ─► What nut height?
-          │         │           ├─ Thin   ─► ISO 10511
-          │         │           ├─ Normal ─► ISO 7040
-          │         │           └─ Tall   ─► ISO 7041
-          │         └─ Metal ─► What nut height?
-          │                     ├─ Normal ─► ISO 7719
-          │                     ├─ Tall   ─► ISO 7042
-          │                     └─ Taller ─► ISO 7720†
-          └─ Yes ─► What type of insert?
-                    ├─ Nylon ─► ISO 7043
-                    └─ Metal ─► ISO 7044`;
+└─ Y ─► Do you need a flange?
+        ├─ N ─► What type of insert?
+        │       ├─ Nylon ─► What nut height?
+        │       │           ├─ Thin   ─► ISO 10511
+        │       │           ├─ Normal ─► ISO 7040
+        │       │           └─ Tall   ─► ISO 7041
+        │       └─ Metal ─► What nut height?
+        │                   ├─ Normal ─► ISO 7719
+        │                   ├─ Tall   ─► ISO 7042
+        │                   └─ Taller ─► ISO 7720†
+        └─ Y ─► What type of insert?
+                ├─ Nylon ─► ISO 7043
+                └─ Metal ─► ISO 7044`;
 
 const nutFlowchartDisclaimer =
-`†In 2025, ISO completely changed the title of ISO 7720. See, in 1983, ISO 7720 was named "Prevailing torque type all-metal hexagon nuts, style 2 — Property class 9". This is because it was essentially a Class 9 extension to ISO 7042 (which supported class 5, 8, 10 and 12). Now, you may be wondering, why would ISO issue an entire new standard for this instead of updating ISO 7042 to include class 9? I think a hint lies in the fact that the two specs have slightly different nut heights and wrenching heights. I had never seen class 9 fasteners before reading this, and it appears that class 9 was mostly used in European automotive. This suggests to me that 7720 was added to accomodate the European auto industry, maybe absorbing an existing standard they used, and in doing so, they absorbed slightly different nut dimensions, resulting in a different ISO number. But even if all that was the case, why would ISO change the title of this standard? In 2025, ISO 7720 was retitled "Fasteners — Prevailing torque hexagon nuts — High nuts (all metal) with slot(s)", something completely diffent. Why not just withdraw the standard, as they have done with many nut standards before, and put out a new one for this taller nut with a slotted collar? I am not entirely sure. It's possible that when 7720 was first defined, that in addition to being a slightly different height, it had a different locking mechanism, and that the title has been changed to describe the locking mechanism and not the class. This generally tracks with ISO's desire to separate dimensions and classes into separate standards. If you have any insider knowledge on this, contact me via the github issues page. Please. I am unwilling to pay $65.88 to purchase the full standard and find out.`;
+`†In 2025, ISO completely changed the title of ISO 7720. See, in 1983, ISO 7720 was named "Prevailing torque type all-metal hexagon nuts, style 2 — Property class 9". On the surface, this looks like a Class 9 extension to ISO 7042 (which supported class 5, 8, 10 and 12). Now, you may be wondering, why would ISO issue an entire new standard for this instead of updating ISO 7042 to include class 9? I think a hint lies in the fact that the two specs have slightly different nut heights and wrenching heights. I had never seen or used class 9 fasteners before researching this, but it appears that class 9 was mostly used in European automotive. This suggests to me that 7720 might have been added to accomodate the European auto industry, absorbing an existing standard they used, and in doing so, absorbing a slightly different set of nut dimensions resulting in a different ISO number. But even if all that was the case, why would ISO change the title of this standard? In 2025, ISO 7720 was retitled "Fasteners — Prevailing torque hexagon nuts — High nuts (all metal) with slot(s)", something completely diffent. Why not just withdraw the standard, as they have done with many nut standards before, and put out a new one for this taller nut with a slotted collar? I am not entirely sure. It's possible that when 7720 was first defined, that in addition to being a slightly different height, it had a different locking mechanism, and that the title has been changed to describe the locking mechanism and not the class. This generally tracks with ISO's desire to separate dimensions and classes into separate standards. If you have any insider knowledge on this, contact me via the github issues page. Please. I am unwilling to pay $65.88 to purchase the full standard and find out.`;
 
 const nutFlowchartDisclaimerSimple =
 `†In 2025, ISO changed the title of ISO 7720.`;
