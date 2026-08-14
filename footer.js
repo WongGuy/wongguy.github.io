@@ -7,20 +7,17 @@ document.addEventListener("DOMContentLoaded", () => {
   const footer = document.querySelector("footer");
   if (!footer) return;
 
-  const sourceData = document.createElement("p");
-  sourceData.innerHTML =
-    '<a href="https://github.com/WongGuy/wongguy.github.io/tree/main/assets/standards/ISO" target="_blank" rel="noopener">Source Data Tables</a>';
-  footer.appendChild(sourceData);
+  const links = document.createElement("p");
+  links.innerHTML =
+    '<a href="https://github.com/WongGuy/wongguy.github.io/tree/main/assets/standards/ISO" target="_blank" rel="noopener">Source Data Tables</a>' +
+    ' | ' +
+    '<a href="https://github.com/WongGuy/wongguy.github.io/issues/new" target="_blank" rel="noopener">Report Issue</a>';
+  footer.appendChild(links);
 
   const attribution = document.createElement("p");
   attribution.innerHTML =
     'Made by Eric: <a href="https://ericwong.design" target="_blank" rel="noopener">ericwong.design</a>';
   footer.appendChild(attribution);
-
-  const reportIssue = document.createElement("p");
-  reportIssue.innerHTML =
-    '<a href="https://github.com/WongGuy/wongguy.github.io/issues/new" target="_blank" rel="noopener">Report Issue</a>';
-  footer.appendChild(reportIssue);
 
   const disclaimer = document.createElement("p");
   disclaimer.textContent =
