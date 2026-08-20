@@ -272,30 +272,158 @@ main {
   text-align: center;
 }
 
-.flowchart-wrap {
-  overflow-x: auto;
-}
-
 .flowchart {
-  margin: 0;
-  width: fit-content;
-  min-width: 100%;
-  box-sizing: border-box;
-  padding: 1rem;
+  padding: 1.25rem;
   background: var(--accent-dim);
   border: 1px solid var(--panel-border);
   color: var(--text);
-  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 0.8rem;
-  line-height: 1;
-  white-space: pre;
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
+  font-size: 0.85rem;
 }
 
-.flowchart a {
+/* --- Flowchart component (flowchart.js) --- */
+
+.fc-title {
+  margin: 0 0 1rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.fc-forest {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+}
+
+.fc-tree ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 1.6rem;
+}
+
+.fc-tree li {
+  position: relative;
+  padding-top: 0.5rem;
+}
+
+/* Elbow connecting a node up to its parent's branch point. */
+.fc-tree li::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -1.6rem;
+  width: 1.6rem;
+  height: 1.3rem;
+  border-left: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+/* Trunk line continuing down to the next sibling's branch point. */
+.fc-tree li::after {
+  content: "";
+  position: absolute;
+  top: 1.3rem;
+  bottom: 0;
+  left: -1.6rem;
+  border-left: 1px solid var(--panel-border);
+}
+
+.fc-tree li:last-child::after {
+  display: none;
+}
+
+.fc-node-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0.15rem 0;
+}
+
+.fc-node-row--root {
+  padding-bottom: 0.35rem;
+}
+
+.fc-edge-label {
+  flex: 0 0 auto;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-dim);
+}
+
+.fc-node {
+  font-weight: 700;
+}
+
+.fc-decision {
+  color: var(--text);
+}
+
+.fc-node-row--root > .fc-decision {
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+.fc-node-sublabel {
+  font-size: 0.75rem;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+.fc-result {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.1rem 0.5rem;
+  padding: 0.3rem 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  color: var(--text);
+  text-decoration: none;
+}
+
+a.fc-result:hover {
+  border-color: var(--accent);
+}
+
+a.fc-result .fc-result-label {
+  color: var(--accent);
+}
+
+.fc-result-label {
+  font-weight: 700;
+}
+
+.fc-footnote {
+  margin-left: -0.35rem;
   color: var(--accent);
   text-decoration: none;
+  font-weight: 700;
+}
+
+.fc-result-meta {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.fc-variant {
+  display: flex;
+  flex-basis: 100%;
+  gap: 0.4rem;
+  align-items: baseline;
+  font-size: 0.8rem;
+}
+
+.fc-variant .fc-result-label {
+  font-weight: 700;
+  font-size: 0.85em;
+}
+
+.fc-variant-note {
+  color: var(--text-dim);
+  font-weight: 400;
 }
 
 .flowchart-disclaimer {
@@ -514,6 +642,24 @@ main {
   .detail-toggle input {
     width: 0.8rem;
     height: 0.8rem;
+  }
+
+  .flowchart {
+    padding: 1rem 0.75rem;
+    font-size: 0.8rem;
+  }
+
+  .fc-tree ul {
+    padding-left: 1.1rem;
+  }
+
+  .fc-tree li::before,
+  .fc-tree li::after {
+    left: -1.1rem;
+  }
+
+  .fc-tree li::before {
+    width: 1.1rem;
   }
 }
 
