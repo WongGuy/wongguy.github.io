@@ -24,9 +24,9 @@ Design notes
   cover a subset of sizes. A size missing from one of those standards gets
   its block filled with "-" placeholders, matching the SHCS/FHCS/BHCS
   convention in screw-data.js.
-- Each STD/TALL/THIN/FLANGED block also carries a derived `nominalThread`
-  field (e.g. "M6x1.00"), built from that block's own size and Pitch cells —
-  not copied from a CSV column.
+- Each STD/TALL/THIN/FLANGED block also carries derived `nominalDiameter`
+  (e.g. "6.0") and `threadPitch` (e.g. "1.00") fields, built from that
+  block's own size and Pitch cells — not copied from a CSV column.
 """
 import csv
 import re
@@ -90,15 +90,16 @@ def parse_iso4032():
 # subset of sizes; sizes missing from a standard get "-" placeholders.
 # ---------------------------------------------------------------------------
 
-EMPTY_STD = {"nominalThread": "-", "circumscribedDiam": "-", "nutWidth": "-", "nutHeight": "-"}
-EMPTY_FLANGED = {"nominalThread": "-", "flangeDiam": "-", "circumscribedDiam": "-", "nutWidth": "-", "nutHeight": "-"}
+EMPTY_STD = {"nominalDiameter": "-", "threadPitch": "-", "circumscribedDiam": "-", "nutWidth": "-", "nutHeight": "-"}
+EMPTY_FLANGED = {"nominalDiameter": "-", "threadPitch": "-", "flangeDiam": "-", "circumscribedDiam": "-", "nutWidth": "-", "nutHeight": "-"}
 
 
 def build_std_entry(size, data):
     if size not in data.get("Circumscribed Diam Min", {}) or not data["Circumscribed Diam Min"][size]:
         return dict(EMPTY_STD)
     return {
-        "nominalThread": f'{size}x{data["Pitch"][size]}',
+        "nominalDiameter": format_diameter(size[1:]),
+        "threadPitch": data["Pitch"][size],
         "circumscribedDiam": data["Circumscribed Diam Min"][size],
         "nutWidth": data["Nut Width Max"][size],
         "nutHeight": data["Nut Height Max"][size],
@@ -109,7 +110,8 @@ def build_flanged_entry(size, data):
     if size not in data.get("Circumscribed Diam Min", {}) or not data["Circumscribed Diam Min"][size]:
         return dict(EMPTY_FLANGED)
     return {
-        "nominalThread": f'{size}x{data["Pitch"][size]}',
+        "nominalDiameter": format_diameter(size[1:]),
+        "threadPitch": data["Pitch"][size],
         "flangeDiam": data["Flange Diam Max"][size],
         "circumscribedDiam": data["Circumscribed Diam Min"][size],
         "nutWidth": data["Nut Width Max"][size],
@@ -160,7 +162,10 @@ def js_str(value):
 
 def js_std_entry(entry, indent, extra_key=None):
     pad = " " * indent
-    fields = [f'nominalThread: {js_str(entry["nominalThread"])}']
+    fields = [
+        f'nominalDiameter: {js_str(entry["nominalDiameter"])}',
+        f'threadPitch: {js_str(entry["threadPitch"])}',
+    ]
     if extra_key:
         fields.append(f'{extra_key}: {js_str(entry[extra_key])}')
     fields.append(f'circumscribedDiam: {js_str(entry["circumscribedDiam"])}')
