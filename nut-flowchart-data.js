@@ -9,146 +9,165 @@
 const nutFlowchartData = {
   trees: [
     {
-      label: "No Locking Feature",
+      label: "Locking feature?",
       children: [
         {
+          edge: "No",
           node: {
-            label: "No Flange",
+            label: "Flange?",
             children: [
               {
-                edge: "Thin",
+                edge: "No",
                 node: {
-                  result: true,
-                  label: "ISO 4035",
-                  link: "nut-iso-4035",
-                  meta: "M1.6-64",
-                  variants: [{ tag: "detail", note: "Fine", label: "ISO 8675", meta: "M8-64" }],
+                  label: "Height?",
+                  children: [
+                    {
+                      edge: "Thin",
+                      node: {
+                        result: true,
+                        label: "ISO 4035",
+                        link: "nut-iso-4035",
+                        meta: "M1.6-64",
+                        note: "Coarse",
+                        variants: [{ tag: "detail", note: "Fine", label: "ISO 8675", meta: "M8-64" }],
+                      },
+                    },
+                    {
+                      edge: "Normal",
+                      node: {
+                        result: true,
+                        label: "ISO 4032",
+                        link: "nut-iso-4032",
+                        meta: "M5-39",
+                        note: "Coarse",
+                        variants: [{ tag: "detail", note: "Fine", label: "ISO 8673", meta: "M8-39" }],
+                      },
+                    },
+                    {
+                      edge: "Tall",
+                      node: {
+                        result: true,
+                        label: "ISO 4033",
+                        link: "nut-iso-4033",
+                        meta: "M5-39",
+                        note: "Coarse",
+                        variants: [{ tag: "detail", note: "Fine", label: "ISO 8674", meta: "M8-39" }],
+                      },
+                    },
+                  ],
                 },
               },
               {
-                edge: "Normal",
-                node: {
-                  result: true,
-                  label: "ISO 4032",
-                  link: "nut-iso-4032",
-                  meta: "M5-39",
-                  variants: [{ tag: "detail", note: "Fine", label: "ISO 8673", meta: "M8-39" }],
-                },
-              },
-              {
-                edge: "Tall",
-                node: {
-                  result: true,
-                  label: "ISO 4033",
-                  link: "nut-iso-4033",
-                  meta: "M5-39",
-                  variants: [{ tag: "detail", note: "Fine", label: "ISO 8674", meta: "M8-39" }],
-                },
-              },
-            ],
-          },
-        },
-        {
-          node: {
-            label: "Flange",
-            children: [
-              {
+                edge: "Yes",
                 node: {
                   result: true,
                   label: "ISO 4161",
                   link: "nut-iso-4161",
                   meta: "M5-20",
+                  note: "Coarse",
                   variants: [{ tag: "detail", note: "Fine", label: "ISO 10663", meta: "M8-20" }],
                 },
               },
             ],
           },
         },
-      ],
-    },
-    {
-      label: "Locking Feature",
-      children: [
         {
+          edge: "Yes",
           node: {
-            label: "No Flange",
+            label: "Flange?",
             children: [
               {
+                edge: "No",
                 node: {
-                  label: "Nylon Insert",
+                  label: "Insert material?",
                   children: [
                     {
-                      edge: "Thin",
-                      node: { result: true, label: "ISO 10511", meta: "M3-39" },
-                    },
-                    {
-                      edge: "Normal",
+                      edge: "Nylon",
                       node: {
-                        result: true,
-                        label: "ISO 7040",
-                        meta: "M3-39",
-                        variants: [{ tag: "detail", note: "Fine", label: "ISO 10512", meta: "M8-39" }],
+                        label: "Height?",
+                        children: [
+                          {
+                            edge: "Thin",
+                            node: { result: true, label: "ISO 10511", meta: "M3-39", note: "Coarse" },
+                          },
+                          {
+                            edge: "Normal",
+                            node: {
+                              result: true,
+                              label: "ISO 7040",
+                              meta: "M3-39",
+                              note: "Coarse",
+                              variants: [{ tag: "detail", note: "Fine", label: "ISO 10512", meta: "M8-39" }],
+                            },
+                          },
+                          {
+                            edge: "Tall",
+                            node: { result: true, label: "ISO 7041", meta: "M5-39", note: "Coarse" },
+                          },
+                        ],
                       },
                     },
                     {
-                      edge: "Tall",
-                      node: { result: true, label: "ISO 7041", meta: "M5-39" },
+                      edge: "Metal",
+                      node: {
+                        label: "Height?",
+                        children: [
+                          {
+                            edge: "Normal",
+                            node: { result: true, label: "ISO 7719", meta: "M5-39", note: "Coarse" },
+                          },
+                          {
+                            edge: "Tall",
+                            node: {
+                              result: true,
+                              label: "ISO 7042",
+                              meta: "M5-39",
+                              note: "Coarse",
+                              variants: [{ tag: "detail", note: "Fine", label: "ISO 10513", meta: "M8-39" }],
+                            },
+                          },
+                          {
+                            edge: "Taller",
+                            node: {
+                              result: true,
+                              label: "ISO 7720",
+                              meta: "M5-39",
+                              note: "Coarse",
+                              footnote: { marker: "†", href: "flowchart-disclaimer" },
+                            },
+                          },
+                        ],
+                      },
                     },
                   ],
                 },
               },
               {
+                edge: "Yes",
                 node: {
-                  label: "Metal Insert",
+                  label: "Insert material?",
                   children: [
                     {
-                      edge: "Normal",
-                      node: { result: true, label: "ISO 7719", meta: "M5-39" },
-                    },
-                    {
-                      edge: "Tall",
+                      edge: "Nylon",
                       node: {
                         result: true,
-                        label: "ISO 7042",
-                        meta: "M5-39",
-                        variants: [{ tag: "detail", note: "Fine", label: "ISO 10513", meta: "M8-39" }],
+                        label: "ISO 7043",
+                        meta: "M5-20",
+                        note: "Coarse",
+                        variants: [{ tag: "detail", note: "Fine", label: "ISO 12125", meta: "M8-20" }],
                       },
                     },
                     {
-                      edge: "Taller",
+                      edge: "Metal",
                       node: {
                         result: true,
-                        label: "ISO 7720",
-                        meta: "M5-39",
-                        footnote: { marker: "†", href: "flowchart-disclaimer" },
+                        label: "ISO 7044",
+                        meta: "M5-20",
+                        note: "Coarse",
+                        variants: [{ tag: "detail", note: "Fine", label: "ISO 12126", meta: "M8-20" }],
                       },
                     },
                   ],
-                },
-              },
-            ],
-          },
-        },
-        {
-          node: {
-            label: "Flange",
-            children: [
-              {
-                edge: "Nylon",
-                node: {
-                  result: true,
-                  label: "ISO 7043",
-                  meta: "M5-20",
-                  variants: [{ tag: "detail", note: "Fine", label: "ISO 12125", meta: "M8-20" }],
-                },
-              },
-              {
-                edge: "Metal",
-                node: {
-                  result: true,
-                  label: "ISO 7044",
-                  meta: "M5-20",
-                  variants: [{ tag: "detail", note: "Fine", label: "ISO 12126", meta: "M8-20" }],
                 },
               },
             ],

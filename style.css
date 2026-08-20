@@ -278,9 +278,27 @@ main {
   border: 1px solid var(--panel-border);
   color: var(--text);
   font-size: 0.85rem;
+  overflow-x: auto;
 }
 
 /* --- Flowchart component (flowchart.js) --- */
+/*
+ * Rendered as a top-down tree: each <ul> is a flex row of one node's
+ * children (<li>), fanning out left/right beneath it. A child <li>'s
+ * ::before/::after draw its half of the horizontal crossbar connecting it
+ * to its siblings, plus (via ::after's border-left) the vertical stem
+ * dropping into the node itself — centered under that one child, not under
+ * the row as a whole, so it still lands correctly even when siblings' own
+ * subtrees are very different widths. The short .fc-decision-stub tail
+ * (real DOM element, not a pseudo-element) is the only thing bridging a
+ * parent's diamond down to that crossbar; there's deliberately no separate
+ * "trunk" — a second line drawn there would either double up on the stub or,
+ * once the two are centered on different things (the stub on one diamond,
+ * a trunk on an entire uneven row), drift out of alignment with it. Because
+ * each <li> shrinks to fit its content (align-items: center on a column
+ * flex parent, rather than stretch), every level re-centers itself under
+ * its parent automatically.
+ */
 
 .fc-title {
   margin: 0 0 1rem;
@@ -291,83 +309,177 @@ main {
 .fc-forest {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
+  align-items: center;
+  gap: 2.5rem;
 }
 
+.fc-tree,
 .fc-tree ul {
+  display: flex;
   list-style: none;
   margin: 0;
-  padding: 0 0 0 1.6rem;
+  padding: 0;
+  justify-content: center;
+}
+
+/* Centered via auto margins (not the parent's align-items) so that when the
+   tree is wider than the .flowchart viewport, the margins clamp to 0 and the
+   tree flushes left instead of overflowing equally on both sides — flexbox's
+   centering via align-items/justify-content spills hidden, unscrollable
+   overflow off the start edge, but auto-margin centering can't go negative,
+   so all the extra width ends up on the right where overflow-x:auto can
+   actually reach it. */
+.fc-tree {
+  width: fit-content;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .fc-tree li {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   position: relative;
-  padding-top: 0.5rem;
+  padding: 1.7rem 0.6rem 0;
 }
 
-/* Elbow connecting a node up to its parent's branch point. */
+/* The root node has no incoming branch, so it gets no connector at all. */
+.fc-tree > li {
+  padding-top: 0;
+}
+
+/* Left half of the crossbar connecting this node to its previous sibling. */
 .fc-tree li::before {
   content: "";
   position: absolute;
   top: 0;
-  left: -1.6rem;
-  width: 1.6rem;
-  height: 1.3rem;
-  border-left: 1px solid var(--panel-border);
-  border-bottom: 1px solid var(--panel-border);
+  right: 50%;
+  width: 50%;
+  height: 1.7rem;
+  border-top: 1px solid var(--panel-border);
 }
 
-/* Trunk line continuing down to the next sibling's branch point. */
+/* Right half of the crossbar, plus the vertical stem down into this node. */
 .fc-tree li::after {
   content: "";
   position: absolute;
-  top: 1.3rem;
-  bottom: 0;
-  left: -1.6rem;
+  top: 0;
+  left: 50%;
+  width: 50%;
+  height: 1.7rem;
+  border-top: 1px solid var(--panel-border);
   border-left: 1px solid var(--panel-border);
 }
 
+.fc-tree li:first-child::before {
+  border-top: none;
+}
+
 .fc-tree li:last-child::after {
-  display: none;
+  border-top: none;
 }
 
-.fc-node-row {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 0.4rem;
-  padding: 0.15rem 0;
+.fc-tree li:only-child::before,
+.fc-tree li:only-child::after {
+  border-top: none;
 }
 
-.fc-node-row--root {
-  padding-bottom: 0.35rem;
+/* The root node has no incoming branch, so it gets no connector of its own —
+   this has to come after the generic li::before/::after rules above (same
+   specificity), otherwise those win the cascade by being declared later and
+   the root ends up with a stray stem line drawn through its own diamond. */
+.fc-tree > li::before,
+.fc-tree > li::after {
+  content: none;
 }
 
+/* Sits right where a branch leaves its parent diamond, breaking the line
+   behind it so the answer reads as belonging to that specific arrow. */
 .fc-edge-label {
-  flex: 0 0 auto;
-  font-size: 0.8rem;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--accent-dim);
+  padding: 0.1rem 0.4rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-dim);
+  white-space: nowrap;
+  z-index: 1;
 }
 
 .fc-node {
   font-weight: 700;
 }
 
-.fc-decision {
-  color: var(--text);
-}
-
-.fc-node-row--root > .fc-decision {
-  font-size: 1rem;
-  color: var(--accent);
+.fc-node-labelwrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .fc-node-sublabel {
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   font-weight: 400;
   font-style: italic;
   color: var(--text-dim);
+  text-align: center;
+}
+
+/* Diamond shape: an outer rhombus in the border color with an inner
+   rhombus (inset by the border thickness) filled in the panel color,
+   stacked to fake a diamond outline — clip-path can't render a real
+   border along its own clipped edge. The inset must be a percentage,
+   not a fixed px: it shrinks the inner rhombus proportionally on both
+   axes, which is what keeps the border's perpendicular thickness equal
+   on all four edges even though the diamond itself is wider than it is
+   tall. A px inset shrinks both axes by the same absolute amount
+   instead, which distorts the aspect ratio and makes the border look
+   thicker at the top/bottom points than along the sides. */
+.fc-decision {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 5.5rem;
+  min-height: 3.6rem;
+  padding: 1.5rem 1.9rem;
+  background: var(--panel-border);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.fc-decision::before {
+  content: "";
+  position: absolute;
+  inset: 2%;
+  background: var(--panel);
+  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.fc-decision--root {
+  background: var(--accent);
+}
+
+.fc-decision-label {
+  position: relative;
+  z-index: 1;
+  max-width: 8rem;
+  font-size: 0.85rem;
+  color: var(--text);
+  text-align: center;
+}
+
+.fc-decision--root .fc-decision-label {
+  font-size: 0.95rem;
+}
+
+.fc-decision-stub {
+  display: block;
+  width: 0;
+  height: calc(0.8rem);
+  border-left: 1px solid var(--panel-border);
 }
 
 .fc-result {
@@ -392,6 +504,13 @@ a.fc-result .fc-result-label {
 
 .fc-result-label {
   font-weight: 700;
+  font-size: 0.9em;
+}
+
+.fc-result-note {
+  color: var(--text-dim);
+  font-weight: 400;
+  font-size: 0.85em;
 }
 
 .fc-footnote {
@@ -402,28 +521,22 @@ a.fc-result .fc-result-label {
 }
 
 .fc-result-meta {
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   font-weight: 400;
   color: var(--text-dim);
   font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 .fc-variant {
   display: flex;
+  flex-direction: column;
   flex-basis: 100%;
-  gap: 0.4rem;
-  align-items: baseline;
-  font-size: 0.8rem;
-}
-
-.fc-variant .fc-result-label {
-  font-weight: 700;
-  font-size: 0.85em;
-}
-
-.fc-variant-note {
-  color: var(--text-dim);
-  font-weight: 400;
+  align-items: flex-start;
+  gap: 0.1rem;
+  margin-top: 0.15rem;
+  padding-top: 0.3rem;
+  border-top: 1px solid var(--panel-border);
 }
 
 .flowchart-disclaimer {
@@ -649,17 +762,32 @@ a.fc-result .fc-result-label {
     font-size: 0.8rem;
   }
 
-  .fc-tree ul {
-    padding-left: 1.1rem;
+  .fc-tree li {
+    padding: 1.3rem 0.4rem 0;
+  }
+
+  .fc-tree > li {
+    padding-top: 0;
   }
 
   .fc-tree li::before,
   .fc-tree li::after {
-    left: -1.1rem;
+    height: 1.3rem;
   }
 
-  .fc-tree li::before {
-    width: 1.1rem;
+  .fc-decision-stub {
+    height: 0.4rem;
+  }
+
+  .fc-decision {
+    min-width: 4.5rem;
+    min-height: 3rem;
+    padding: 1.1rem 1.3rem;
+  }
+
+  .fc-decision-label {
+    max-width: 6rem;
+    font-size: 0.78rem;
   }
 }
 

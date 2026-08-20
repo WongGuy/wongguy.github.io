@@ -4,62 +4,73 @@
 // expected to have.
 
 const washerFlowchartData = {
-  title: "What is going through the washer?",
   trees: [
     {
-      label: "Regular Bolt/Screw, Up to Class 10.9",
-      sublabel: "Grade A Washers, Default",
+      label: "What's going through the washer?",
       children: [
         {
-          edge: "Small",
-          node: { result: true, label: "ISO 7092", meta: "M1.6-M36" },
-        },
-        {
-          edge: "Normal",
+          edge: "Bolt/screw, up to Class 10.9",
           node: {
+            sublabel: "Grade A Washers, Default",
+            label: "Diameter?",
             children: [
               {
-                edge: "Default",
-                node: { result: true, label: "ISO 7089", meta: "M1.6-M64" },
+                edge: "Small",
+                node: { result: true, label: "ISO 7092", meta: "M1.6-M36" },
               },
               {
-                edge: "Chamfered",
-                node: { result: true, label: "ISO 7090", meta: "M5-M64" },
+                edge: "Normal",
+                node: {
+                  label: "Chamfered?",
+                  children: [
+                    {
+                      edge: "No",
+                      node: { result: true, label: "ISO 7089", meta: "M1.6-M64" },
+                    },
+                    {
+                      edge: "Yes",
+                      node: { result: true, label: "ISO 7090", meta: "M5-M64" },
+                    },
+                  ],
+                },
+              },
+              {
+                edge: "Large",
+                node: { result: true, label: "ISO 7093-1", meta: "M3-M36" },
               },
             ],
           },
         },
         {
-          edge: "Large",
-          node: { result: true, label: "ISO 7093-1", meta: "M3-M36" },
+          edge: "Bolt/screw, up to Class 6.8",
+          node: {
+            sublabel: "Grade C Washers",
+            label: "Diameter?",
+            children: [
+              {
+                edge: "Normal",
+                node: { result: true, label: "ISO 7091", meta: "M1.6-M64" },
+              },
+              {
+                edge: "Large",
+                node: { result: true, label: "ISO 7093-2", meta: "M3-M36" },
+              },
+              {
+                edge: "Extra large",
+                node: { result: true, label: "ISO 7094", meta: "M5-M36" },
+              },
+            ],
+          },
+        },
+        {
+          edge: "Clevis pin",
+          node: { result: true, label: "ISO 8738", meta: "⌀3-100" },
+        },
+        {
+          edge: "Captive screw",
+          node: { result: true, label: "ISO 10673", meta: "M2-M12" },
         },
       ],
-    },
-    {
-      label: "Regular Bolt/Screw, Up to Class 6.8",
-      sublabel: "Grade C Washers",
-      children: [
-        {
-          edge: "Normal",
-          node: { result: true, label: "ISO 7091", meta: "M1.6-M64" },
-        },
-        {
-          edge: "Large",
-          node: { result: true, label: "ISO 7093-2", meta: "M3-M36" },
-        },
-        {
-          edge: "Extra large",
-          node: { result: true, label: "ISO 7094", meta: "M5-M36" },
-        },
-      ],
-    },
-    {
-      label: "Clevis Pin",
-      children: [{ node: { result: true, label: "ISO 8738", meta: "⌀3-100" } }],
-    },
-    {
-      label: "Captive Screw",
-      children: [{ node: { result: true, label: "ISO 10673", meta: "M2-M12" } }],
     },
   ],
 };
