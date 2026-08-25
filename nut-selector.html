@@ -33,7 +33,16 @@
       </nav>
       <div class="chart-card-header">
         <h2>Nut Selector</h2>
-        <h3>(ISO 4032, ISO 4033, ISO 4035, ISO 4161)</h3>
+        <div class="chart-card-subheader">
+          <h3>(ISO 4032, ISO 4033, ISO 4035, ISO 4161)</h3>
+          <button
+            type="button"
+            id="flowchart-collapse-toggle"
+            class="flowchart-collapse-toggle"
+            aria-expanded="true"
+            aria-controls="nut-flowchart-group"
+          >Hide Flowchart</button>
+        </div>
       </div>
       <div class="chart-layout">
         <div class="slider-sticky">
@@ -62,7 +71,7 @@
             </label>
           </div>
         </div>
-        <div class="spec-group">
+        <div class="spec-group" id="nut-flowchart-group">
           <h3 class="spec-group-title">Nut Selection Flowchart</h3>
           <div id="flowchart" class="flowchart"></div>
         </div>

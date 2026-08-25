@@ -33,11 +33,82 @@
       </nav>
       <div class="chart-card-header">
         <h2>Washer Selector</h2>
+        <div class="chart-card-subheader">
+          <h3>(ISO 7089, ISO 7092, ISO 7093-1)</h3>
+          <button
+            type="button"
+            id="flowchart-collapse-toggle"
+            class="flowchart-collapse-toggle"
+            aria-expanded="true"
+            aria-controls="washer-flowchart-group"
+          >Hide Flowchart</button>
+        </div>
       </div>
       <div class="chart-layout">
-        <div class="spec-group">
+        <div class="slider-sticky">
+          <div class="slider-block">
+            <div id="size-readout" class="size-readout">M6</div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="size-slider"
+                class="size-slider"
+                min="0"
+                max="16"
+                step="1"
+                value="7"
+                aria-label="Select thread diameter"
+              />
+              <div id="slider-ticks" class="slider-ticks"></div>
+              <div class="slider-endpoints">
+                <span id="slider-min-label"></span>
+                <span id="slider-max-label"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="spec-group" id="washer-flowchart-group">
           <h3 class="spec-group-title">Washer Selection Flowchart</h3>
           <div id="flowchart" class="flowchart"></div>
+        </div>
+        <div class="spec-group" id="washer-iso-7089">
+          <h3 class="spec-group-title">Normal Washer - ISO 7089</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/washer/normal-diagram.svg"
+                alt="Normal washer diagram"
+                class="diagram-image diagram-image--sm"
+              />
+            </div>
+            <div id="normal-spec-panel" class="spec-panel"></div>
+          </div>
+        </div>
+        <div class="spec-group" id="washer-iso-7092">
+          <h3 class="spec-group-title">Small Washer - ISO 7092</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/washer/small-diagram.svg"
+                alt="Small washer diagram"
+                class="diagram-image diagram-image--sm"
+              />
+            </div>
+            <div id="small-spec-panel" class="spec-panel"></div>
+          </div>
+        </div>
+        <div class="spec-group" id="washer-iso-7093-1">
+          <h3 class="spec-group-title">Large Washer - ISO 7093-1</h3>
+          <div class="chart-row">
+            <div class="diagram-panel">
+              <img
+                src="assets/images/washer/large-diagram.svg"
+                alt="Large washer diagram"
+                class="diagram-image diagram-image--sm"
+              />
+            </div>
+            <div id="large-spec-panel" class="spec-panel"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -45,6 +116,8 @@
 
   <footer></footer>
 
+  <script src="washer-data.js"></script>
+  <script src="washer-app.js"></script>
   <script src="flowchart.js"></script>
   <script src="washer-flowchart-data.js"></script>
 </body>

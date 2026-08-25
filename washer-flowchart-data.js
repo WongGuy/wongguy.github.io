@@ -16,7 +16,7 @@ const washerFlowchartData = {
             children: [
               {
                 edge: "Small",
-                node: { result: true, label: "ISO 7092", meta: "M1.6-M36" },
+                node: { result: true, label: "ISO 7092", link: "washer-iso-7092", meta: "M1.6-M36" },
               },
               {
                 edge: "Normal",
@@ -24,8 +24,8 @@ const washerFlowchartData = {
                   label: "Chamfered?",
                   children: [
                     {
-                      edge: "No",
-                      node: { result: true, label: "ISO 7089", meta: "M1.6-M64" },
+                      edge: "No (Default)",
+                      node: { result: true, label: "ISO 7089", link: "washer-iso-7089", meta: "M1.6-M64" },
                     },
                     {
                       edge: "Yes",
@@ -36,7 +36,7 @@ const washerFlowchartData = {
               },
               {
                 edge: "Large",
-                node: { result: true, label: "ISO 7093-1", meta: "M3-M36" },
+                node: { result: true, label: "ISO 7093-1", link: "washer-iso-7093-1", meta: "M3-M36" },
               },
             ],
           },
@@ -77,5 +77,18 @@ const washerFlowchartData = {
 
 (function () {
   const flowchartEl = document.getElementById("flowchart");
-  renderFlowchart(flowchartEl, washerFlowchartData);
+
+  function renderChart() {
+    renderFlowchart(flowchartEl, washerFlowchartData);
+  }
+
+  initFlowchartCollapse({
+    toggle: document.getElementById("flowchart-collapse-toggle"),
+    container: flowchartEl,
+    group: document.getElementById("washer-flowchart-group"),
+    // Shared with nut-flowchart-data.js (not washer-prefixed) so the
+    // collapsed state stays in sync across tools.
+    storageKey: "flowchartCollapsed",
+    render: renderChart,
+  });
 })();

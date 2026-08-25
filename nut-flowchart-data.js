@@ -204,16 +204,32 @@ const nutFlowchartDisclaimerSimple =
   let showDetail = getStoredDetail();
   detailToggleEl.checked = showDetail;
 
-  function render() {
+  function renderChart() {
     renderFlowchart(flowchartEl, nutFlowchartData, { activeTags: showDetail ? ["detail"] : [] });
+  }
+
+  function updateDisclaimer() {
     disclaimerEl.textContent = showDetail ? nutFlowchartDisclaimer : nutFlowchartDisclaimerSimple;
   }
 
   detailToggleEl.addEventListener("change", () => {
     showDetail = detailToggleEl.checked;
     localStorage.setItem(DETAIL_STORAGE_KEY, String(showDetail));
-    render();
+    updateDisclaimer();
+    // Skip the rebuild while minimized — initFlowchartCollapse re-renders
+    // with the current showDetail value when the flowchart is expanded again.
+    if (!flowchartEl.hidden) renderChart();
   });
 
-  render();
+  updateDisclaimer();
+
+  initFlowchartCollapse({
+    toggle: document.getElementById("flowchart-collapse-toggle"),
+    container: flowchartEl,
+    group: document.getElementById("nut-flowchart-group"),
+    // Shared with washer-flowchart-data.js (not nut-prefixed) so the
+    // collapsed state stays in sync across tools.
+    storageKey: "flowchartCollapsed",
+    render: renderChart,
+  });
 })();

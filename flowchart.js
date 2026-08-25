@@ -40,6 +40,22 @@
 // unlabeled branch.
 //
 // Options: { activeTags?: string[] }
+//
+// initFlowchartCollapse(options) wires up a minimize/expand toggle button for
+// a flowchart. Collapsing hides `group` (via the `hidden` attribute) — the
+// whole spec-group the flowchart lives in, title and all — and clears
+// `container`'s contents, so a minimized flowchart costs nothing — no
+// layout, no paint, no DOM nodes sitting around — rather than just being
+// visually hidden. Expanding calls `render` again to rebuild it. State
+// persists per page via `storageKey` in localStorage.
+//
+// options: {
+//   toggle: HTMLElement,     // the button that switches collapsed state
+//   group: HTMLElement,      // the .spec-group to show/hide
+//   container: HTMLElement,  // the .flowchart element to clear/rebuild
+//   storageKey: string,      // localStorage key for persisting collapsed state
+//   render: () => void,      // (re)builds the flowchart into `container`
+// }
 
 (function () {
   function buildResultNode(node, activeTags) {
@@ -187,5 +203,45 @@
     });
   }
 
+  function initFlowchartCollapse(options) {
+    const { toggle, container, group, storageKey, render } = options;
+    const SHOW_LABEL = "Show Flowchart";
+    const HIDE_LABEL = "Hide Flowchart";
+
+    // Lock the button to whichever label is wider so it doesn't change size
+    // when the label toggles between the two.
+    toggle.textContent = SHOW_LABEL;
+    const showWidth = toggle.offsetWidth;
+    toggle.textContent = HIDE_LABEL;
+    const hideWidth = toggle.offsetWidth;
+    toggle.style.minWidth = Math.max(showWidth, hideWidth) + "px";
+
+    function apply(collapsed) {
+      group.hidden = collapsed;
+      toggle.setAttribute("aria-expanded", String(!collapsed));
+      toggle.classList.toggle("is-collapsed", collapsed);
+      toggle.textContent = collapsed ? SHOW_LABEL : HIDE_LABEL;
+      if (collapsed) {
+        container.innerHTML = "";
+        // renderFlowchart leaves "fc-forest" (display: flex) on the
+        // container; that author rule beats the `[hidden]` UA style, so it
+        // has to come off too or the empty, still-styled box stays visible.
+        container.classList.remove("fc-forest");
+      } else {
+        render();
+      }
+    }
+
+    let collapsed = localStorage.getItem(storageKey) === "true";
+    apply(collapsed);
+
+    toggle.addEventListener("click", () => {
+      collapsed = !collapsed;
+      localStorage.setItem(storageKey, String(collapsed));
+      apply(collapsed);
+    });
+  }
+
   window.renderFlowchart = renderFlowchart;
+  window.initFlowchartCollapse = initFlowchartCollapse;
 })();

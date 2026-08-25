@@ -201,16 +201,31 @@ main {
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-dim);
-  text-align: center;
 }
 
 .chart-card-header {
   display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.chart-card-header h2 {
+  text-align: center;
+}
+
+.chart-card-subheader {
+  display: flex;
   align-items: center;
-  justify-content: center;
   flex-wrap: wrap;
   gap: 0.5rem 1rem;
-  margin-bottom: 1.25rem;
+  /* Matches .flowchart-collapse-toggle's rendered height, so the row is the
+     same height whether or not a page has the button. */
+  min-height: 1.75rem;
+}
+
+.chart-card-subheader .flowchart-collapse-toggle {
+  margin-left: auto;
 }
 
 .detail-toggle {
@@ -255,7 +270,11 @@ main {
   scroll-margin-top: 6rem;
 }
 
-.spec-group + .spec-group {
+.spec-group[hidden] {
+  display: none;
+}
+
+.spec-group:not([hidden]) + .spec-group {
   border-top: 1px solid var(--panel-border);
   margin-left: -1.5rem;
   margin-right: -1.5rem;
@@ -270,6 +289,23 @@ main {
   font-weight: 700;
   color: var(--text-dim);
   text-align: center;
+}
+
+.flowchart-collapse-toggle {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: var(--text-dim);
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.flowchart-collapse-toggle:hover {
+  color: var(--text);
+  border-color: var(--accent);
 }
 
 .flowchart {
@@ -722,7 +758,7 @@ a.fc-result .fc-result-label {
     padding-right: 0.75rem;
   }
 
-  .spec-group + .spec-group {
+  .spec-group:not([hidden]) + .spec-group {
     margin-left: -0.75rem;
     margin-right: -0.75rem;
     padding-left: 0.75rem;
