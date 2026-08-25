@@ -45,13 +45,6 @@ const washerData = [
     LARGE: { nominalID: "3.2", nominalOD: "9", nominalThickness: "0.8" }
   },
   {
-    size: "M3.5",
-    diameter: "3.5",
-    NORMAL: { nominalID: "3.7", nominalOD: "8", nominalThickness: "0.5" },
-    SMALL: { nominalID: "3.7", nominalOD: "7", nominalThickness: "0.5" },
-    LARGE: { nominalID: "-", nominalOD: "-", nominalThickness: "-" }
-  },
-  {
     size: "M4",
     diameter: "4.0",
     NORMAL: { nominalID: "4.3", nominalOD: "9", nominalThickness: "0.8" },
@@ -92,13 +85,6 @@ const washerData = [
     NORMAL: { nominalID: "13", nominalOD: "24", nominalThickness: "2.5" },
     SMALL: { nominalID: "13", nominalOD: "20", nominalThickness: "2" },
     LARGE: { nominalID: "13", nominalOD: "37", nominalThickness: "3" }
-  },
-  {
-    size: "M14",
-    diameter: "14.0",
-    NORMAL: { nominalID: "15", nominalOD: "28", nominalThickness: "2.5" },
-    SMALL: { nominalID: "15", nominalOD: "24", nominalThickness: "2.5" },
-    LARGE: { nominalID: "-", nominalOD: "-", nominalThickness: "-" }
   },
   {
     size: "M16",
