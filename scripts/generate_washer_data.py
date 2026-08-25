@@ -23,8 +23,8 @@ Design notes
   since ISO 7089 (Normal) and ISO 7092 (Small) share the same size range and
   ISO 7093-1 (Large) only covers a subset of it.
 - NORMAL/SMALL/LARGE: each entry carries nested `NORMAL`, `SMALL`, and
-  `LARGE` objects (ISO 7089, 7092, 7093-1 respectively) with `nominalID`,
-  `nominalOD`, and `nominalThickness`, each rendered in its own chart row
+  `LARGE` objects (ISO 7089, 7092, 7093-1 respectively) with `minID`,
+  `maxOD`, and `nominalThickness`, each rendered in its own chart row
   below using the same slider index. A standard not offered at a given size
   gets "-" placeholders, matching the SHCS/FHCS/BHCS convention in
   screw-data.js.
@@ -47,7 +47,7 @@ STANDARDS = {
     "LARGE": "ISO Standards - ISO 7093-1.csv",
 }
 
-EMPTY_ENTRY = {"nominalID": "-", "nominalOD": "-", "nominalThickness": "-"}
+EMPTY_ENTRY = {"minID": "-", "maxOD": "-", "nominalThickness": "-"}
 
 
 def read_rows(filename):
@@ -71,15 +71,27 @@ def fkey(s, digits=3):
 def parse_standard(filename):
     """Reads a washer standard CSV: one row per nominal size, columns for
     clearance hole (ID), outside diameter (OD), and thickness. Returns
-    {size_fkey: {"size": raw_size_str, "nominalID": ..., "nominalOD": ...,
+    {size_fkey: {"size": raw_size_str, "minID": ..., "maxOD": ...,
     "nominalThickness": ...}}, keeping the first occurrence of a duplicate
-    size row."""
+    size row.
+
+    Each CSV has two clearance-hole columns and two outside-diameter columns
+    (a nominal value and a min/max bound); we want the min bound for the
+    clearance hole and the max bound for the outside diameter, so the column
+    is picked by matching "min"/"max" in the header text rather than by
+    position."""
     rows = read_rows(filename)
     header = [h.strip() for h in rows[0]]
     idx = {
         "size": 0,
-        "id": next(i for i, h in enumerate(header) if h.startswith("Clearance hole")),
-        "od": next(i for i, h in enumerate(header) if h.startswith("Outside diameter")),
+        "id": next(
+            i for i, h in enumerate(header)
+            if h.startswith("Clearance hole") and "min" in h.lower()
+        ),
+        "od": next(
+            i for i, h in enumerate(header)
+            if h.startswith("Outside diameter") and "max" in h.lower()
+        ),
         "thickness": next(i for i, h in enumerate(header) if h.startswith("Thickness h nom")),
     }
 
@@ -91,8 +103,8 @@ def parse_standard(filename):
             continue
         entries[key] = {
             "size": size_str,
-            "nominalID": cell(row, idx["id"]),
-            "nominalOD": cell(row, idx["od"]),
+            "minID": cell(row, idx["id"]),
+            "maxOD": cell(row, idx["od"]),
             "nominalThickness": cell(row, idx["thickness"]),
         }
     return entries
@@ -138,8 +150,8 @@ def js_str(value):
 
 def js_std_entry(entry):
     fields = [
-        f'nominalID: {js_str(entry["nominalID"])}',
-        f'nominalOD: {js_str(entry["nominalOD"])}',
+        f'minID: {js_str(entry["minID"])}',
+        f'maxOD: {js_str(entry["maxOD"])}',
         f'nominalThickness: {js_str(entry["nominalThickness"])}',
     ]
     return "{ " + ", ".join(fields) + " }"
