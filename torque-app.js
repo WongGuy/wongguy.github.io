@@ -195,6 +195,20 @@
     renderPlot();
   }
 
+  // Torque and engagement values climb with fastener size but rarely
+  // approach zero, so starting every axis there wastes most of the plot on
+  // dead space. Truncate the low end to just under the smallest plotted
+  // value instead — with a little padding so its marker isn't flush against
+  // the axis — but never truncate a value that's already at or below zero.
+  function axisMin(values) {
+    if (!values.length) return 0;
+    const dataMin = Math.min(...values);
+    const dataMax = Math.max(...values);
+    if (dataMin <= 0) return 0;
+    const pad = (dataMax - dataMin) * 0.2 || dataMin * 0.2;
+    return Math.max(0, dataMin - pad);
+  }
+
   function renderPlot() {
     const row = torqueData[selectedIndex];
     const metric = currentMetric();
@@ -204,12 +218,16 @@
     const anyDataAtSize = torqueMaterials.some(
       (m) => (row.materials[m.key] || []).length
     );
+    const xValues = series.flatMap((s) => s.points.map((p) => p.x));
+    const yValues = series.flatMap((s) => s.points.map((p) => p.y));
 
     renderLinePlot(plotEl, {
       series: series,
       legendItems: buildLegendItems(),
       xLabel: "Thread Engagement (mm)",
       yLabel: "Torque (Nm)",
+      xMin: axisMin(xValues),
+      yMin: axisMin(yValues),
       ariaLabel: `${metric.label} versus thread engagement for ${row.size}, ${series.length} materials`,
       formatTooltip: (point, s) => [
         s.label,
