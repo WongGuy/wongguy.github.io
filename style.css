@@ -13,6 +13,14 @@
   --text-dim: #4D4D4D;
   --accent: #249EDC;
   --accent-dim: #99D4F1;
+  /* Plot line colors, one per data series (see plot.js / torque-app.js).
+     Kept as tokens so a series keeps its identity across the two themes. */
+  --series-1: #0F6FB8;
+  --series-2: #C4471C;
+  --series-3: #1D7A4D;
+  --series-4: #7B3FA0;
+  --series-5: #A87400;
+  --plot-grid: #D7DEE3;
 }
 
 :root[data-theme="dark"] {
@@ -23,6 +31,12 @@
   --text-dim: #8DA3AF;
   --accent: #4FC3F7;
   --accent-dim: #1F3A47;
+  --series-1: #56B6F2;
+  --series-2: #FF8F5E;
+  --series-3: #56CE92;
+  --series-4: #C48CE6;
+  --series-5: #E0BE55;
+  --plot-grid: #2C3F4D;
 }
 
 * {
@@ -767,6 +781,196 @@ a.fc-result .fc-result-label {
   color: var(--text-dim);
 }
 
+/* --- Plot (see plot.js for the renderer this styles) --- */
+
+.plot {
+  position: relative;
+  width: 100%;
+  /* The tooltip is positioned against this box, and the renderer measures
+     clientWidth off it on every draw. */
+}
+
+.plot-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  touch-action: pan-y;
+}
+
+.plot-grid line {
+  stroke: var(--plot-grid);
+  stroke-width: 1;
+}
+
+.plot-axis line {
+  stroke: var(--text);
+  stroke-width: 1;
+}
+
+.plot-tick-label text {
+  fill: var(--text-dim);
+  font-size: 0.7rem;
+}
+
+.plot-axis-title text {
+  fill: var(--text);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.plot-line {
+  fill: none;
+  stroke-width: 2;
+  stroke-linejoin: miter;
+  stroke-linecap: butt;
+}
+
+.plot-marker {
+  stroke: var(--panel);
+  stroke-width: 1;
+}
+
+.plot-marker.is-active {
+  r: 5.5;
+  stroke: var(--text);
+}
+
+.plot-overlay {
+  cursor: crosshair;
+}
+
+/* The legend doubles as the plot's series control when the page passes
+   legendItems with an onToggle (see plot.js): each row is then a real
+   checkbox + swatch + label, and a row switched off — or one the data has
+   nothing to draw for — stays listed so it can be switched back on. */
+.plot-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem 1.25rem;
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.plot-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.plot-legend-item--toggle {
+  cursor: pointer;
+  user-select: none;
+}
+
+.plot-legend-item--toggle input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* Switched off: the swatch keeps its color (that's the row's identity — it's
+   what the line will be when it comes back), the text recedes. */
+.plot-legend-item.is-off .plot-legend-label {
+  color: var(--text-dim);
+}
+
+.plot-legend-item.is-off .plot-legend-swatch {
+  opacity: 0.45;
+}
+
+.plot-legend-note {
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--text-dim);
+}
+
+.plot-legend-item.is-noted .plot-legend-label {
+  color: var(--text-dim);
+}
+
+.plot-legend-swatch {
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.5rem;
+  border: 1px solid var(--panel-border);
+}
+
+.plot-tooltip {
+  position: absolute;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem 0.55rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--text-dim);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.plot-tooltip[hidden] {
+  /* The display:flex above would otherwise beat the UA's [hidden] rule. */
+  display: none;
+}
+
+.plot-tooltip-title {
+  color: var(--text);
+}
+
+.plot-empty {
+  margin: 0;
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--text-dim);
+  border: 1px dashed var(--panel-border);
+}
+
+.plot-note {
+  margin: 0.75rem 0 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--text-dim);
+}
+
+/* --- Plot controls --- */
+
+.metric-toggle {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.75rem;
+}
+
+.metric-option {
+  padding: 0.3rem 0.85rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.metric-option + .metric-option {
+  border-left: none;
+}
+
+.metric-option:hover {
+  background: var(--accent-dim);
+}
+
+.metric-option.is-active {
+  background: var(--accent);
+  color: var(--panel);
+}
+
 @media (max-width: 600px) {
   header {
     padding: 0.5rem 1rem;
@@ -865,6 +1069,24 @@ a.fc-result .fc-result-label {
     max-width: 6rem;
     font-size: 0.78rem;
   }
+
+  .plot-tick-label text {
+    font-size: 0.65rem;
+  }
+
+  .plot-legend {
+    gap: 0.35rem 0.9rem;
+    font-size: 0.75rem;
+  }
+
+  .plot-legend-note {
+    font-size: 0.7rem;
+  }
+
+  .plot-note {
+    font-size: 0.7rem;
+  }
+
 }
 
 /* --- Diagram panel --- */

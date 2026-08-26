@@ -49,6 +49,14 @@ STANDARDS = {
 
 EMPTY_ENTRY = {"minID": "-", "maxOD": "-", "nominalThickness": "-"}
 
+# Fastener sizes to include in washer-data.js; every other size across all
+# three standards is skipped. Write each size exactly as it appears in the
+# generated `size` field (e.g. "M14").
+SIZE_ALLOWLIST = {
+    "M1.6", "M2", "M2.5", "M3", "M4", "M5", "M6", "M8",
+    "M10", "M12", "M16", "M20", "M24", "M30",
+}
+
 
 def read_rows(filename):
     path = STANDARDS_DIR / filename
@@ -127,8 +135,12 @@ def build_washer_data():
         diam_str = next(
             standards[std][key]["size"] for std in STANDARDS if key in standards[std]
         )
+        size = f"M{diam_str}"
+        if size not in SIZE_ALLOWLIST:
+            continue
+
         entry = {
-            "size": f"M{diam_str}",
+            "size": size,
             "diameter": format_diameter(diam_str),
         }
         for std in STANDARDS:

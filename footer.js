@@ -9,7 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const links = document.createElement("p");
   links.innerHTML =
-    '<a href="https://github.com/WongGuy/wongguy.github.io/tree/main/assets/standards/ISO" target="_blank" rel="noopener">Source Data Tables</a>' +
+    '<a href="https://github.com/WongGuy/wongguy.github.io/tree/main/assets/standards" target="_blank" rel="noopener">Source Data Tables</a>' +
     ' | ' +
     '<a href="https://github.com/WongGuy/wongguy.github.io/issues/new" target="_blank" rel="noopener">Report Issue</a>';
   footer.appendChild(links);

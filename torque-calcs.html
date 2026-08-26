@@ -28,11 +28,53 @@
       <div class="site-nav"></div>
       <div class="chart-card-header">
         <h2>Torque Calcs</h2>
+        <div class="chart-card-subheader">
+          <h3>(NASA/TM&#8212;2017-219475, Noncritical Applications)</h3>
+        </div>
       </div>
-      <p class="placeholder-text">Coming soon.</p>
+      <div class="chart-layout">
+        <div class="slider-sticky">
+          <div class="slider-block">
+            <div id="size-readout" class="size-readout">M6</div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="size-slider"
+                class="size-slider"
+                min="0"
+                max="38"
+                step="1"
+                value="13"
+                aria-label="Select thread diameter"
+              />
+              <div id="slider-ticks" class="slider-ticks"></div>
+              <div class="slider-endpoints">
+                <span id="slider-min-label"></span>
+                <span id="slider-max-label"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="spec-group" id="torque-plot-group">
+          <h3 class="spec-group-title" id="plot-title">Assembly Torque vs Thread Engagement</h3>
+          <div id="metric-toggle" class="metric-toggle" role="group" aria-label="Torque column"></div>
+          <div id="torque-plot" class="plot"></div>
+          <p class="plot-note">
+            Tabulated values are for a screw threaded into a tapped hole in the
+            named material, with the nut factor K = 0.20 the source report
+            assumes. Assembly torque is the recommended installation torque;
+            100 % torque is the torque that develops the full thread pullout
+            load. Not for flight hardware.
+          </p>
+        </div>
+      </div>
     </section>
   </main>
 
   <footer></footer>
+
+  <script src="torque-data.js"></script>
+  <script src="plot.js"></script>
+  <script src="torque-app.js"></script>
 </body>
 </html>

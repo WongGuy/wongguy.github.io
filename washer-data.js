@@ -113,13 +113,6 @@ const washerData = [
     NORMAL: { minID: "31", maxOD: "56", nominalThickness: "4" },
     SMALL: { minID: "31", maxOD: "50", nominalThickness: "4" },
     LARGE: { minID: "33", maxOD: "92", nominalThickness: "6" }
-  },
-  {
-    size: "M36",
-    diameter: "36.0",
-    NORMAL: { minID: "37", maxOD: "66", nominalThickness: "5" },
-    SMALL: { minID: "37", maxOD: "60", nominalThickness: "5" },
-    LARGE: { minID: "39", maxOD: "110", nominalThickness: "8" }
   }
 ];
 
