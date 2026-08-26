@@ -12,6 +12,10 @@
 //       points: [{ x, y, ...anything else }, ...]   // sorted by x
 //     }, ...],
 //     xLabel, yLabel,       // axis titles, drawn as-is
+//     xMin, xMax, yMin, yMax, // optional; override the computed domain on
+//                             // that axis (default: 0 to just past the data)
+//                             // so a caller can truncate an axis that never
+//                             // approaches zero and use the freed space
 //     formatX, formatY,     // (value) => string, for tick labels
 //     formatTooltip,        // (point, series) => [string, ...] lines
 //     emptyMessage,         // shown when no series has points
@@ -73,6 +77,16 @@
       ticks.push(Math.round(v / step) * step);
     }
     return ticks;
+  }
+
+  // One unlabeled tick at the midpoint of each pair of adjacent major ticks —
+  // enough to help the eye interpolate without crowding the axis.
+  function minorTicksBetween(majorTicks) {
+    const minors = [];
+    for (let i = 0; i < majorTicks.length - 1; i++) {
+      minors.push((majorTicks[i] + majorTicks[i + 1]) / 2);
+    }
+    return minors;
   }
 
   function defaultFormat(value) {
@@ -200,15 +214,18 @@
     const [xMinData, xMaxData] = extent(series, "x");
     const [, yMaxData] = extent(series, "y");
 
-    // X starts at 0 so engagement depths read against a real origin, and the
+    // X starts at 0 and Y starts at 0 by default, so values read against a
+    // real origin instead of exaggerating the spread between series — but a
+    // caller can override any bound (e.g. yMin/yMax) to truncate an axis and
+    // use the screen space on a series that never approaches zero. The x
     // domain is padded a little past the last point so its marker isn't
-    // clipped by the axis. Y always starts at 0 — a torque axis that didn't
-    // would exaggerate the spread between materials.
+    // clipped by the axis; explicit xMax/yMax bounds are taken as-is.
     const xPad = (xMaxData - xMinData) * 0.06 || Math.max(xMaxData * 0.06, 1);
-    const xMin = 0;
-    const xMax = xMaxData + xPad;
-    const yMin = 0;
-    const yMax = yMaxData > 0 ? yMaxData * 1.08 : 1;
+    const xMin = opts.xMin != null ? opts.xMin : 0;
+    const xMax = opts.xMax != null ? opts.xMax : xMaxData + xPad;
+    const yMin = opts.yMin != null ? opts.yMin : 0;
+    const yMax =
+      opts.yMax != null ? opts.yMax : yMaxData > 0 ? yMaxData * 1.08 : 1;
 
     const xScale = (v) => margin.left + ((v - xMin) / (xMax - xMin)) * plotW;
     const yScale = (v) => margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
@@ -229,8 +246,31 @@
 
     const xTicks = ticksFor(xMin, xMax, compact ? 6 : 12);
     const yTicks = ticksFor(yMin, yMax, compact ? 6 : 9);
+    const xMinorTicks = minorTicksBetween(xTicks);
+    const yMinorTicks = minorTicksBetween(yTicks);
 
     // --- Grid ---
+    // Minor gridlines are drawn first (and styled fainter in CSS) so the
+    // major grid — which carries the tick labels — reads on top of them.
+    const minorGrid = el("g", { class: "plot-grid plot-grid-minor" });
+    xMinorTicks.forEach((t) => {
+      minorGrid.appendChild(
+        el("line", {
+          x1: xScale(t), y1: margin.top,
+          x2: xScale(t), y2: margin.top + plotH,
+        })
+      );
+    });
+    yMinorTicks.forEach((t) => {
+      minorGrid.appendChild(
+        el("line", {
+          x1: margin.left, y1: yScale(t),
+          x2: margin.left + plotW, y2: yScale(t),
+        })
+      );
+    });
+    svg.appendChild(minorGrid);
+
     const grid = el("g", { class: "plot-grid" });
     xTicks.forEach((t) => {
       grid.appendChild(

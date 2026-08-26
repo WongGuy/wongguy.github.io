@@ -803,6 +803,10 @@ a.fc-result .fc-result-label {
   stroke-width: 1;
 }
 
+.plot-grid-minor line {
+  opacity: 0.5;
+}
+
 .plot-axis line {
   stroke: var(--text);
   stroke-width: 1;
