@@ -35,7 +35,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 STANDARDS_DIR = ROOT / "assets" / "standards" / "ISO" / "nut"
-DATA_JS = ROOT / "nut-data.js"
+DATA_JS = ROOT / "tools" / "nut" / "nut-data.js"
 
 TRUE_VALUES = {"true", "1", "yes", "y"}
 

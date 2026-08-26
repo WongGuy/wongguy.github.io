@@ -71,7 +71,7 @@ WORKBOOK = (
     / "Torque"
     / "NASA_TM-2017-219475_Metric_Torque_Tables.xlsx"
 )
-DATA_JS = ROOT / "torque-data.js"
+DATA_JS = ROOT / "tools" / "torque" / "torque-data.js"
 
 NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 

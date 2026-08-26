@@ -39,7 +39,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 STANDARDS_DIR = ROOT / "assets" / "standards" / "ISO" / "washer"
-DATA_JS = ROOT / "washer-data.js"
+DATA_JS = ROOT / "tools" / "washer" / "washer-data.js"
 
 STANDARDS = {
     "NORMAL": "ISO Standards - ISO 7089.csv",
