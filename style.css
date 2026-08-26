@@ -940,6 +940,32 @@ a.fc-result .fc-result-label {
   color: var(--text-dim);
 }
 
+.plot-note h4 {
+  margin: 1rem 0 0.35rem;
+  font-size: 0.8rem;
+  color: var(--text);
+}
+
+.plot-note h4:first-child {
+  margin-top: 0;
+}
+
+.plot-note ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  list-style: square;
+}
+
+.plot-note li {
+  margin: 0.2rem 0;
+}
+
+.plot-note li ul {
+  margin-top: 0.2rem;
+  list-style: none;
+  padding-left: 1rem;
+}
+
 /* --- Plot controls --- */
 
 .metric-toggle {

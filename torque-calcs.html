@@ -29,7 +29,7 @@
       <div class="chart-card-header">
         <h2>Torque Calcs</h2>
         <div class="chart-card-subheader">
-          <h3>(NASA/TM&#8212;2017-219475, Noncritical Applications)</h3>
+          <h3>(<a href="https://ntrs.nasa.gov/citations/20170003491">NASA/TM&#8212;2017-219475</a>, Noncritical Applications)</h3>
         </div>
       </div>
       <div class="chart-layout">
@@ -59,13 +59,46 @@
           <h3 class="spec-group-title" id="plot-title">Assembly Torque vs Thread Engagement</h3>
           <div id="metric-toggle" class="metric-toggle" role="group" aria-label="Torque column"></div>
           <div id="torque-plot" class="plot"></div>
-          <p class="plot-note">
-            Tabulated values are for a screw threaded into a tapped hole in the
-            named material, with the nut factor K = 0.20 the source report
-            assumes. Assembly torque is the recommended installation torque;
-            100 % torque is the torque that develops the full thread pullout
-            load. Not for flight hardware.
-          </p>
+          <div class="plot-note">
+            <h4>Assumptions</h4>
+            <ul>
+              <li>Full engagement of threads. Length of thread engagement is equal to thickness of plate and length of fastener.</li>
+              <li>Bolt is fully threaded.</li>
+              <li>
+                Shear strength of Carbon Steel is equal to 0.6 of the tensile strength.
+                <ul>
+                  <li>F<sub>s</sub> = 0.6F<sub>t</sub></li>
+                </ul>
+              </li>
+              <li>
+                Shear strength of both Aluminum and Stainless Steel is equal to 0.55 of the tensile strength.
+                <ul>
+                  <li>F<sub>s</sub> = 0.55F<sub>t</sub></li>
+                </ul>
+              </li>
+              <li>Fastener material is stronger than parent material.</li>
+              <li>Fasteners made out of stainless steel with a yield strength of 180 ksi.</li>
+              <li>Fasteners are screwed directly into parent material. No insert.</li>
+              <li>2A class fasteners.</li>
+              <li>
+                65% of load is used to calculate assembly torque.
+                <ul>
+                  <li>SF = 1.538</li>
+                </ul>
+              </li>
+              <li>Minimum of 3 threads for fastener.</li>
+              <li>Machine screws.</li>
+              <li>Torque coefficient (K) = 0.2</li>
+            </ul>
+            <h4>Shear Strengths</h4>
+            <ul>
+              <li>6061-T6 Aluminum = 27 ksi</li>
+              <li>304 Stainless Steel = 50 ksi</li>
+              <li>ASTM A36 Steel = 34.8 ksi</li>
+              <li>2024-T4/T351 Aluminum = 37.5 ksi</li>
+              <li>7075-T6/T651 Aluminum = 45.6 ksi</li>
+            </ul>
+          </div>
         </div>
       </div>
     </section>
