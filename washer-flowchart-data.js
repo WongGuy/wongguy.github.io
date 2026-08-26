@@ -11,7 +11,7 @@ const washerFlowchartData = {
         {
           edge: "Bolt/screw, up to Class 10.9",
           node: {
-            sublabel: "Grade A Washers, Default",
+            sublabel: "Grade A Washers (Default)",
             label: "Diameter?",
             children: [
               {

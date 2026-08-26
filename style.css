@@ -583,10 +583,19 @@ a.fc-result .fc-result-label {
 }
 
 .flowchart-disclaimer:target {
-  animation: flowchart-disclaimer-highlight 2s ease-out;
+  animation: flowchart-target-highlight 2s ease-out;
 }
 
-@keyframes flowchart-disclaimer-highlight {
+/* Clicking a result link in a flowchart jumps to the spec-group it points
+   to; this flashes that group's title the same way a footnote jump flashes
+   the disclaimer above, so the destination is obvious either way. The
+   :target match lands on .spec-group (the id is on the container, not the
+   heading), so the flash is applied to the descendant title instead. */
+.spec-group:target .spec-group-title {
+  animation: flowchart-target-highlight 2s ease-out;
+}
+
+@keyframes flowchart-target-highlight {
   from {
     background: var(--accent-dim);
     outline: 2px solid var(--accent);
