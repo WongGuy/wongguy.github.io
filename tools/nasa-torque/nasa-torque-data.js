@@ -1,16 +1,16 @@
 // Reference data for the torque-vs-thread-engagement plot.
 // EDITING THESE TABLES: the torqueMaterials and torqueData blocks below are
 // generated — don't hand-edit them. They're produced by
-// scripts/generate_torque_data.py from the NASA workbook in
+// scripts/generate_nasa_torque_data.py from the NASA workbook in
 // assets/standards/NASA/Torque/ (NASA/TM-2017-219475, "Installation Torque
 // Tables for Noncritical Applications", metric tables). To add, remove, or
 // correct a value, fix the workbook and rerun
-// `python scripts/generate_torque_data.py`.
+// `python scripts/generate_nasa_torque_data.py`.
 //
 // UNITS: everything here is metric, converted from the US customary source
 // tables by the generator (in -> mm, lb -> N, lb-in -> N*m). Values are plain
 // numbers rather than display strings — unlike screw-data.js et al — because
-// torque-app.js does arithmetic on them to lay out the plot, and formats them
+// nasa-torque-app.js does arithmetic on them to lay out the plot, and formats them
 // for display itself.
 //
 // torqueMaterials: the five materials the report covers, ordered by ultimate

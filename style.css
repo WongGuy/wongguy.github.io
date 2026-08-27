@@ -13,7 +13,7 @@
   --text-dim: #4D4D4D;
   --accent: #249EDC;
   --accent-dim: #99D4F1;
-  /* Plot line colors, one per data series (see plot.js / torque-app.js).
+  /* Plot line colors, one per data series (see plot.js / nasa-torque-app.js).
      Kept as tokens so a series keeps its identity across the two themes. */
   --series-1: #0F6FB8;
   --series-2: #C4471C;

@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Regenerates the generated blocks in torque-data.js from the NASA torque
+"""Regenerates the generated blocks in nasa-torque-data.js from the NASA torque
 workbook checked into assets/standards/NASA/Torque/.
 
-Run with no arguments to rewrite torque-data.js in place:
+Run with no arguments to rewrite nasa-torque-data.js in place:
 
-    python scripts/generate_torque_data.py
+    python scripts/generate_nasa_torque_data.py
 
 Run with --check to print the generated blocks to stdout instead (useful for
 diffing against the current file without touching it):
 
-    python scripts/generate_torque_data.py --check
+    python scripts/generate_nasa_torque_data.py --check
 
 Source
 ------
@@ -38,16 +38,16 @@ Design notes
 - UNITS: the source tables are US customary; every value is converted to
   metric on the way out, since the site is metric-only. in -> mm (x25.4),
   lb -> N (x4.4482216152605), lb-in -> N*m (x0.1129848290276167). Nothing
-  downstream re-converts, so torque-data.js is metric end to end.
+  downstream re-converts, so nasa-torque-data.js is metric end to end.
 - Converted values are rounded to 6 significant figures and printed as bare
   JS numbers (not strings, unlike the other data files) because the plot
-  arithmetic in torque-app.js consumes them directly. 6 figures is more than
+  arithmetic in nasa-torque-app.js consumes them directly. 6 figures is more than
   the 3-5 the source tables carry, so the rounding only trims float noise
   from the conversion and never loses source precision.
 - Engagement is rounded to 4 decimals instead, which is exact for every
   fraction the tables use (the finest is 1/16 in = 1.5875 mm).
 - SHAPE: torqueData is an array of size entries, in ascending diameter order,
-  so the slider in torque-app.js can index it the same way the other
+  so the slider in nasa-torque-app.js can index it the same way the other
   selectors index their tables. Each entry holds a `materials` map keyed by
   material key; a material with no table at that size is simply absent from
   the map (rather than carrying "-" placeholders like washer-data.js) because
@@ -71,7 +71,7 @@ WORKBOOK = (
     / "Torque"
     / "NASA_TM-2017-219475_Metric_Torque_Tables.xlsx"
 )
-DATA_JS = ROOT / "tools" / "torque" / "torque-data.js"
+DATA_JS = ROOT / "tools" / "nasa-torque" / "nasa-torque-data.js"
 
 NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 
@@ -83,7 +83,7 @@ KSI_TO_MPA = 6.894757
 
 # Short, stable keys for the five materials, used as the object keys in
 # torqueData entries and as the localStorage identity of each legend toggle in
-# torque-app.js — renaming one silently resets a visitor's saved selection.
+# nasa-torque-app.js — renaming one silently resets a visitor's saved selection.
 MATERIAL_KEYS = {
     "Aluminum 6061-T6": "AL6061",
     "ASTM A36 Steel": "A36",
@@ -92,7 +92,7 @@ MATERIAL_KEYS = {
     "304 Stainless Steel": "SS304",
 }
 
-# Fastener sizes to include in torque-data.js; every other size in the
+# Fastener sizes to include in nasa-torque-data.js; every other size in the
 # workbook is skipped. Write each size exactly as it appears in the sheet
 # titles (e.g. "M14").
 SIZE_ALLOWLIST = {
@@ -349,7 +349,7 @@ def main():
     original = DATA_JS.read_text(encoding="utf-8")
     for label, pattern in (("torqueMaterials", MATERIALS_RE), ("torqueData", DATA_RE)):
         if not pattern.search(original):
-            raise SystemExit(f"Could not find `const {label} = [ ... ];` block in torque-data.js")
+            raise SystemExit(f"Could not find `const {label} = [ ... ];` block in nasa-torque-data.js")
     updated = MATERIALS_RE.sub(lambda _: materials_block, original, count=1)
     updated = DATA_RE.sub(lambda _: data_block, updated, count=1)
     with DATA_JS.open("w", encoding="utf-8", newline="\n") as f:

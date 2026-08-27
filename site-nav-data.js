@@ -22,8 +22,8 @@ const siteNav = [
   {
     label: "Bolting Information",
     pages: [
-      { label: "Torque Calcs", href: "torque-calcs.html" },
-      { label: "Preload Calcs", href: "preload-calcs.html" },
+      { label: "NASA Tightening Torque", href: "nasa-tightening-torque.html" },
+      { label: "VDI Screw Sizing", href: "vdi-screw-sizing.html" },
     ],
   },
 ];

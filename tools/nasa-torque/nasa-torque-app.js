@@ -1,6 +1,7 @@
-// DOM logic for the torque plot: the size slider, the torque-vs-engagement
-// plot itself, and the assembly/100 % torque toggle. Reads torque-data.js;
-// see that file for the schema and for how to regenerate it.
+// DOM logic for the NASA tightening torque plot: the size slider, the
+// torque-vs-engagement plot itself, and the assembly/100 % torque toggle.
+// Reads nasa-torque-data.js; see that file for the schema and for how to
+// regenerate it.
 //
 // The materials are switched on and off from the plot's own legend rather
 // than from a separate control: this page hands plot.js a legendItems list
@@ -10,7 +11,7 @@
 // Three bits of state are remembered in localStorage between visits: the
 // selected size, which torque column is plotted, and which materials are
 // shown. The material selection is keyed by the material keys in
-// torque-data.js.
+// nasa-torque-data.js.
 
 (function () {
   const sliderEl = document.getElementById("size-slider");
