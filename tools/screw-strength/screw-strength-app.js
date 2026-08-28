@@ -21,11 +21,12 @@
 //   steps run off the bottom of it — has no size to recommend, so its column
 //   header is marked instead and nothing in the column is marked.
 //
-// Five bits of state are remembered in localStorage between visits: the force
+// Six bits of state are remembered in localStorage between visits: the force
 // per bolt, the selected load condition, the selected tightening method, which
-// property class columns are shown, and whether the "Show UTS Load" toggle
-// adds the minimum ultimate tensile load as a second value per cell. Columns
-// are keyed by the class designations in screw-strength-data.js.
+// property class columns are shown, whether the "Show UTS Load" toggle adds the
+// minimum ultimate tensile load as a second value per cell, and whether the
+// "Show Cursed (2nd choice) Sizes" toggle un-hides the ISO 262 second-choice
+// diameters. Columns are keyed by the class designations in screw-strength-data.js.
 //
 // The estimate (bolded minimum, highlighted pick, trimmed row window) always
 // tracks the proof loads; "Show UTS Load" is reference only and doesn't move
@@ -41,6 +42,7 @@
   const forceEl = document.getElementById("force-input");
   const forceClearEl = document.getElementById("force-clear");
   const utsToggleEl = document.getElementById("uts-toggle");
+  const cursedToggleEl = document.getElementById("cursed-toggle");
   const loadCaseLabelEl = document.getElementById("load-case-label");
   const loadCaseRowEl = document.getElementById("load-case-row");
   const methodLabelEl = document.getElementById("method-label");
@@ -51,6 +53,7 @@
   const messageEl = document.getElementById("table-message");
   const legendEl = document.getElementById("table-legend");
   const gradeTogglesEl = document.getElementById("grade-toggles");
+  const gradeCommonEl = document.getElementById("grade-common");
   const notesEl = document.getElementById("source-notes");
 
   const FORCE_STORAGE_KEY = "screwEstForce";
@@ -58,6 +61,11 @@
   const METHOD_STORAGE_KEY = "screwEstMethod";
   const GRADES_STORAGE_KEY = "screwEstGrades";
   const UTS_STORAGE_KEY = "screwEstShowUts";
+  const CURSED_STORAGE_KEY = "screwEstShowCursed";
+
+  // ISO 262 second-choice nominal diameters. Hidden by default — tick "Show
+  // Cursed (2nd choice) Sizes" to bring their rows back.
+  const CURSED_DIAMETERS = new Set([3.5, 7, 14, 18, 22, 27, 33, 39]);
 
   // Property classes drawn bold in the column picker — the everyday high-strength
   // choices, so they read first in the list.
@@ -111,6 +119,7 @@
   let method = storedChoice(METHOD_STORAGE_KEY, screwStrengthTighteningMethods);
   let force = storedForce();
   let showUts = localStorage.getItem(UTS_STORAGE_KEY) === "1";
+  let showCursed = localStorage.getItem(CURSED_STORAGE_KEY) === "1";
 
   // The minimum-ultimate-tensile load type, shown as a second value per cell
   // when "Show UTS Load" is ticked. The estimate itself always tracks proof
@@ -120,7 +129,11 @@
   // --- Data access ---
 
   function visibleThreads() {
-    return screwStrengthThreads.filter((thread) => shownSeries.has(thread.series));
+    return screwStrengthThreads.filter(
+      (thread) =>
+        shownSeries.has(thread.series) &&
+        (showCursed || !CURSED_DIAMETERS.has(thread.diameter))
+    );
   }
 
   function visibleGrades() {
@@ -256,6 +269,7 @@
     screwStrengthGrades.forEach((grade) => {
       const label = document.createElement("label");
       label.className = "est-grade-toggle";
+      label.dataset.key = grade.key;
 
       const input = document.createElement("input");
       input.type = "checkbox";
@@ -320,7 +334,7 @@
 
     if (!grades.length) {
       messageEl.textContent =
-        "No property classes selected. Tick one below to fill the table.";
+        "No property classes selected.";
       return;
     }
 
@@ -435,7 +449,7 @@
   function renderMessage() {
     messageEl.textContent =
       force === null
-        ? "Enter the force per bolt above to size the joint. Until then the full table is shown."
+        ? "Enter force per bolt above to show size recommendation."
         : "";
   }
 
@@ -456,13 +470,30 @@
     renderTable();
   }
 
-  function setGradeShown(key, shown) {
-    if (shown) shownGrades.add(key);
-    else shownGrades.delete(key);
+  function persistGrades() {
     localStorage.setItem(
       GRADES_STORAGE_KEY,
       JSON.stringify(screwStrengthGrades.map((g) => g.key).filter((k) => shownGrades.has(k)))
     );
+  }
+
+  function setGradeShown(key, shown) {
+    if (shown) shownGrades.add(key);
+    else shownGrades.delete(key);
+    persistGrades();
+    renderTable();
+  }
+
+  // "Show common": tick only the everyday high-strength classes, untick the
+  // rest, and sync the checkboxes to match.
+  function showCommonGrades() {
+    shownGrades.clear();
+    EMPHASIZED_GRADES.forEach((key) => shownGrades.add(key));
+    gradeTogglesEl.querySelectorAll(".est-grade-toggle").forEach((label) => {
+      const input = label.querySelector("input");
+      if (input) input.checked = shownGrades.has(label.dataset.key);
+    });
+    persistGrades();
     renderTable();
   }
 
@@ -470,6 +501,13 @@
     showUts = shown;
     if (shown) localStorage.setItem(UTS_STORAGE_KEY, "1");
     else localStorage.removeItem(UTS_STORAGE_KEY);
+    renderTable();
+  }
+
+  function setShowCursed(shown) {
+    showCursed = shown;
+    if (shown) localStorage.setItem(CURSED_STORAGE_KEY, "1");
+    else localStorage.removeItem(CURSED_STORAGE_KEY);
     renderTable();
   }
 
@@ -495,8 +533,13 @@
     forceEl.focus();
   });
 
+  gradeCommonEl.addEventListener("click", showCommonGrades);
+
   utsToggleEl.checked = showUts;
   utsToggleEl.addEventListener("change", () => setShowUts(utsToggleEl.checked));
+
+  cursedToggleEl.checked = showCursed;
+  cursedToggleEl.addEventListener("change", () => setShowCursed(cursedToggleEl.checked));
 
   syncPickers();
   renderTable();

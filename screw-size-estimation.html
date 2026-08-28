@@ -36,6 +36,7 @@
         <div class="spec-group">
           <h3 class="spec-group-title">Force Per Bolt (Leave blank to view full table)</h3>
           <div class="est-force-row">
+            <button type="button" id="force-clear" class="est-force-clear">Clear</button>
             <input
               type="number"
               id="force-input"
@@ -47,7 +48,6 @@
               aria-label="Force per bolt in newtons"
             />
             <span class="est-force-unit">N</span>
-            <button type="button" id="force-clear" class="est-force-clear">Clear</button>
           </div>
         </div>
 
@@ -77,10 +77,16 @@
 
         <div class="spec-group">
           <h3 class="spec-group-title" id="table-title"></h3>
-          <label class="est-uts-toggle">
-            <input type="checkbox" id="uts-toggle" />
-            <span>Show UTS Load</span>
-          </label>
+          <div class="est-toggle-row">
+            <label class="est-uts-toggle">
+              <input type="checkbox" id="uts-toggle" />
+              <span>Show UTS Load</span>
+            </label>
+            <label class="est-uts-toggle">
+              <input type="checkbox" id="cursed-toggle" />
+              <span>Show Cursed (2nd choice) Sizes</span>
+            </label>
+          </div>
           <p id="steps-note" class="est-steps-note"></p>
           <div class="est-table-wrap">
             <table id="size-table" class="est-table"></table>
@@ -90,7 +96,8 @@
         </div>
 
         <div class="spec-group">
-          <h3 class="spec-group-title">Property Classes Shown</h3>
+          <h3 class="spec-group-title">Property Classes</h3>
+          <button type="button" id="grade-common" class="est-grade-preset">Show common</button>
           <div id="grade-toggles" class="est-grades"></div>
         </div>
 
