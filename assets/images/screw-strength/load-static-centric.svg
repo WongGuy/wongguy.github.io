@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 120" role="img" aria-labelledby="t">
+  <title id="t">Bolted joint under a static axial force on the bolt axis</title>
+  <g fill="none" stroke="#000" stroke-width="2">
+    <rect x="30" y="48" width="100" height="18" />
+    <rect x="30" y="66" width="100" height="18" />
+    <rect x="71" y="34" width="18" height="14" />
+    <rect x="75" y="48" width="10" height="44" />
+    <rect x="69" y="84" width="22" height="8" />
+  </g>
+  <g fill="none" stroke="#000" stroke-width="2">
+    <path d="M80 8 V30" />
+    <path d="M74 15 L80 8 L86 15" />
+    <path d="M80 96 V116" />
+    <path d="M74 109 L80 116 L86 109" />
+  </g>
+</svg>

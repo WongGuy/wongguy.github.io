@@ -28,11 +28,80 @@
       <div class="site-nav"></div>
       <div class="chart-card-header">
         <h2>Screw Size Estimation</h2>
+        <div class="chart-card-subheader">
+          <h3>Uses ISO 898-1 Proof Loads and VDI guideline 2230 rough estimation steps</h3>
+        </div>
       </div>
-      <p class="placeholder-text">Coming soon.</p>
+      <div class="chart-layout">
+        <div class="spec-group">
+          <h3 class="spec-group-title">Force Per Bolt (Leave blank to view full table)</h3>
+          <div class="est-force-row">
+            <input
+              type="number"
+              id="force-input"
+              class="est-force-input"
+              min="0"
+              step="any"
+              inputmode="decimal"
+              placeholder="0"
+              aria-label="Force per bolt in newtons"
+            />
+            <span class="est-force-unit">N</span>
+            <button type="button" id="force-clear" class="est-force-clear">Clear</button>
+          </div>
+        </div>
+
+        <div class="spec-group">
+          <h3 class="spec-group-title">
+            Load Condition: <span id="load-case-label" class="est-selected"></span>
+          </h3>
+          <div
+            id="load-case-row"
+            class="est-case-row"
+            role="radiogroup"
+            aria-label="Load condition"
+          ></div>
+        </div>
+
+        <div class="spec-group">
+          <h3 class="spec-group-title">
+            Tightening Method: <span id="method-label" class="est-selected"></span>
+          </h3>
+          <div
+            id="method-list"
+            class="est-method-list"
+            role="radiogroup"
+            aria-label="Tightening method"
+          ></div>
+        </div>
+
+        <div class="spec-group">
+          <h3 class="spec-group-title" id="table-title"></h3>
+          <label class="est-uts-toggle">
+            <input type="checkbox" id="uts-toggle" />
+            <span>Show UTS Load</span>
+          </label>
+          <p id="steps-note" class="est-steps-note"></p>
+          <div class="est-table-wrap">
+            <table id="size-table" class="est-table"></table>
+          </div>
+          <p id="table-legend" class="est-legend"></p>
+          <p id="table-message" class="est-message"></p>
+        </div>
+
+        <div class="spec-group">
+          <h3 class="spec-group-title">Property Classes Shown</h3>
+          <div id="grade-toggles" class="est-grades"></div>
+        </div>
+
+        <div class="plot-note" id="source-notes"></div>
+      </div>
     </section>
   </main>
 
   <footer></footer>
+
+  <script src="tools/screw-strength/screw-strength-data.js"></script>
+  <script src="tools/screw-strength/screw-strength-app.js"></script>
 </body>
 </html>
