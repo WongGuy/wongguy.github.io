@@ -23,7 +23,7 @@ const siteNav = [
     label: "Bolting Information",
     pages: [
       { label: "NASA Tightening Torque", href: "nasa-tightening-torque.html" },
-      { label: "VDI Screw Sizing", href: "vdi-screw-sizing.html" },
+      { label: "Screw Size Estimation", href: "screw-size-estimation.html" },
     ],
   },
 ];
