@@ -1,22 +1,22 @@
-// Reference data for the screw size estimation tool.
+// Reference data for the bolt size estimation tool.
 //
 // Two halves, and they're maintained differently:
 //
-//   1. GENERATED — screwStrengthSeries, screwStrengthLoadTypes,
-//      screwStrengthGrades, screwStrengthThreads, screwStrengthNotes.
+//   1. GENERATED — boltStrengthSeries, boltStrengthLoadTypes,
+//      boltStrengthGrades, boltStrengthThreads, boltStrengthNotes.
 //      Don't hand-edit these. They're produced by
-//      scripts/generate_screw_strength_data.py from ISO 898-1 Tables 4-7 in
+//      scripts/generate_bolt_strength_data.py from ISO 898-1 Tables 4-7 in
 //      assets/standards/ISO/screw/"ISO Standards - ISO 898-1.xlsx". To
 //      correct a value, fix the workbook and rerun
-//      `python scripts/generate_screw_strength_data.py`.
+//      `python scripts/generate_bolt_strength_data.py`.
 //
-//   2. HAND-MAINTAINED — screwStrengthLoadCases, screwStrengthTighteningMethods.
+//   2. HAND-MAINTAINED — boltStrengthLoadCases, boltStrengthTighteningMethods.
 //      These aren't in ISO 898-1; they're the estimation method's own step
 //      counts (see the block comment above them). Edit them here.
 //
 // THREADS: one flat array covering both thread series, sorted by diameter
 // ascending then pitch descending, each row tagged with `series` ("coarse" or
-// "fine"). screw-strength-app.js shows only the series whose keys are in its
+// "fine"). bolt-strength-app.js shows only the series whose keys are in its
 // shown-series set — "coarse" always, plus "fine" when "Include Fine Pitches"
 // is ticked — and filtering preserves the sort order, so the fine rows drop
 // straight in below their coarse siblings (M10x1.25 and M10x1 below M10x1.5).
@@ -32,12 +32,12 @@
 // localStorage identity of each column checkbox, so renaming one resets a
 // visitor's saved column selection.
 
-const screwStrengthSeries = [
+const boltStrengthSeries = [
   { key: "coarse", label: "ISO metric coarse pitch thread", shownByDefault: true },
   { key: "fine", label: "ISO metric fine pitch thread", shownByDefault: false },
 ];
 
-const screwStrengthLoadTypes = [
+const boltStrengthLoadTypes = [
   {
     key: "proof",
     label: "Proof loads",
@@ -52,7 +52,7 @@ const screwStrengthLoadTypes = [
   },
 ];
 
-const screwStrengthGrades = [
+const boltStrengthGrades = [
   { key: "4.6", label: "4.6", designation: "4.6", shownByDefault: false },
   { key: "4.8", label: "4.8", designation: "4.8", shownByDefault: false },
   { key: "5.6", label: "5.6", designation: "5.6", shownByDefault: false },
@@ -64,7 +64,7 @@ const screwStrengthGrades = [
   { key: "12.9", label: "12.9", designation: "12.9/12.9", shownByDefault: true },
 ];
 
-const screwStrengthThreads = [
+const boltStrengthThreads = [
   {
     designation: "M3x0.5", size: "M3", diameter: 3, pitch: 0.5, series: "coarse", stressArea: 5.03,
     loads: {
@@ -319,21 +319,21 @@ const screwStrengthThreads = [
   },
 ];
 
-const screwStrengthNotes = {
+const boltStrengthNotes = {
   proof: [
-    "For fasteners with thread tolerance 6az in accordance with ISO 965-4 subject to hot dip galvanizing, reduced values in accordance with ISO 10684:2004, Annex A, apply. (Affected cells: M8 & M10 in columns 4.6, 5.6, 8.8, 10.9)",
-    "For structural bolting: 50,700 N (for M12), 68,800 N (for M14) and 94,500 N (for M16), instead of the table value in the 8.8 column.",
+    "For fasteners with thread tolerance 6az in accordance with ISO 965-4 subject to hot dip galvanizing, reduced values in accordance with ISO 10684:2004, Annex A, apply. (Marked cells: M8, M10 — columns 4.6, 5.6, 8.8, 10.9)",
+    "For structural bolting: 50 700 N (for M12), 68 800 N (for M14) and 94 500 N (for M16), instead of the table value in the 8.8 column.",
   ],
   tensile: [
-    "For fasteners with thread tolerance 6az in accordance with ISO 965-4 subject to hot dip galvanizing, reduced values in accordance with ISO 10684:2004, Annex A, apply. (Affected cells: M8 & M10 in columns 4.6, 5.6, 8.8, 10.9)",
-    "For structural bolting: 50,700 N (for M12), 68,800 N (for M14) and 94,500 N (for M16), instead of the table value in the 8.8 column.",
+    "For fasteners with thread tolerance 6az in accordance with ISO 965-4 subject to hot dip galvanizing, reduced values in accordance with ISO 10684:2004, Annex A, apply. (Marked cells: M8, M10 — columns 4.6, 5.6, 8.8, 10.9)",
+    "For structural bolting: 70 000 N (for M12), 95 500 N (for M14) and 130 000 N (for M16), instead of the table value in the 8.8 column.",
   ],
 };
 
 // --- Estimation method (hand-maintained) -----------------------------------
 //
 // The load condition and the tightening method each add a number of "steps":
-// once the smallest screw whose load rating covers the force per bolt is
+// once the smallest bolt whose load rating covers the force per bolt is
 // found, the estimate moves that many rows further down the table. The two
 // step counts add together, so the worst case (transverse loading tightened
 // with an uncontrolled powered driver) moves six sizes up from the bare
@@ -343,13 +343,13 @@ const screwStrengthNotes = {
 // `image` is the schematic shown in the load condition picker; `shortLabel`
 // is its caption, with the full `label` shown in the heading above the row.
 
-const screwStrengthLoadCases = [
+const boltStrengthLoadCases = [
   {
     key: "transverse",
     label: "Static or Dynamic Transverse Loading",
     shortLabel: "Transverse",
     steps: 4,
-    image: "assets/images/screw-strength/load-transverse.svg",
+    image: "assets/images/bolt-strength/load-transverse.svg",
     shownByDefault: true,
   },
   {
@@ -357,7 +357,7 @@ const screwStrengthLoadCases = [
     label: "Dynamic Eccentric Axial Force",
     shortLabel: "Dynamic Eccentric",
     steps: 2,
-    image: "assets/images/screw-strength/load-dynamic-eccentric.svg",
+    image: "assets/images/bolt-strength/load-dynamic-eccentric.svg",
     shownByDefault: false,
   },
   {
@@ -365,7 +365,7 @@ const screwStrengthLoadCases = [
     label: "Dynamic and Centrical Force",
     shortLabel: "Dynamic Centrical",
     steps: 1,
-    image: "assets/images/screw-strength/load-dynamic-centric.svg",
+    image: "assets/images/bolt-strength/load-dynamic-centric.svg",
     shownByDefault: false,
   },
   {
@@ -373,7 +373,7 @@ const screwStrengthLoadCases = [
     label: "Static and Eccentric Force",
     shortLabel: "Static Eccentric",
     steps: 1,
-    image: "assets/images/screw-strength/load-static-eccentric.svg",
+    image: "assets/images/bolt-strength/load-static-eccentric.svg",
     shownByDefault: false,
   },
   {
@@ -381,12 +381,12 @@ const screwStrengthLoadCases = [
     label: "Static and Centrical Force",
     shortLabel: "Static Centrical",
     steps: 0,
-    image: "assets/images/screw-strength/load-static-centric.svg",
+    image: "assets/images/bolt-strength/load-static-centric.svg",
     shownByDefault: false,
   },
 ];
 
-const screwStrengthTighteningMethods = [
+const boltStrengthTighteningMethods = [
   {
     key: "powered",
     label: "Motorized or Pneumatic Torque Driver",

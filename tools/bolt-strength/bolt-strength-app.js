@@ -1,6 +1,6 @@
-// DOM logic for screw-size-estimation.html: the force-per-bolt input, the
+// DOM logic for bolt-size-estimation.html: the force-per-bolt input, the
 // load condition and tightening method pickers, the load table, and the
-// property class column toggles. Reads screw-strength-data.js — see that file
+// property class column toggles. Reads bolt-strength-data.js — see that file
 // for the schema and for how to regenerate the ISO 898-1 half of it.
 //
 // How the table is marked up:
@@ -9,7 +9,7 @@
 //   load reaches the force per bolt is bolded and filled yellow — that's the
 //   bare minimum before corrections, with no margin at all. The load
 //   condition and the tightening method each add a
-//   number of steps (see screwStrengthLoadCases / screwStrengthTighteningMethods);
+//   number of steps (see boltStrengthLoadCases / boltStrengthTighteningMethods);
 //   the cell that many rows below the bolded one is the estimate, and is
 //   highlighted. The rows outside that band are trimmed away, leaving one row
 //   of context above the first bolded cell and one below the last estimate.
@@ -40,7 +40,7 @@
 // property class columns are shown, whether the "Show UTS Load" toggle adds the
 // minimum ultimate tensile load as a second value per cell, and whether
 // "Include Fine Pitches" is on. Columns are keyed by the class designations in
-// screw-strength-data.js.
+// bolt-strength-data.js.
 //
 // The estimate (bolded minimum, highlighted pick, trimmed row window) always
 // tracks the proof loads; "Show UTS Load" is reference only and doesn't move
@@ -70,12 +70,12 @@
   const gradeCommonEl = document.getElementById("grade-common");
   const notesEl = document.getElementById("source-notes");
 
-  const FORCE_STORAGE_KEY = "screwEstForce";
-  const LOAD_CASE_STORAGE_KEY = "screwEstLoadCase";
-  const METHOD_STORAGE_KEY = "screwEstMethod";
-  const GRADES_STORAGE_KEY = "screwEstGrades";
-  const UTS_STORAGE_KEY = "screwEstShowUts";
-  const FINE_STORAGE_KEY = "screwEstShowFine";
+  const FORCE_STORAGE_KEY = "boltEstForce";
+  const LOAD_CASE_STORAGE_KEY = "boltEstLoadCase";
+  const METHOD_STORAGE_KEY = "boltEstMethod";
+  const GRADES_STORAGE_KEY = "boltEstGrades";
+  const UTS_STORAGE_KEY = "boltEstShowUts";
+  const FINE_STORAGE_KEY = "boltEstShowFine";
 
   // ISO 262 second-choice nominal diameters. Always filtered out of the table.
   const SECOND_CHOICE_DIAMETERS = new Set([3.5, 7, 14, 18, 22, 27, 33, 39]);
@@ -112,11 +112,11 @@
   function storedGrades() {
     try {
       const stored = JSON.parse(localStorage.getItem(GRADES_STORAGE_KEY));
-      if (!Array.isArray(stored)) return defaultKeys(screwStrengthGrades);
-      const all = screwStrengthGrades.map((g) => g.key);
+      if (!Array.isArray(stored)) return defaultKeys(boltStrengthGrades);
+      const all = boltStrengthGrades.map((g) => g.key);
       return new Set(stored.filter((key) => all.indexOf(key) !== -1));
     } catch (err) {
-      return defaultKeys(screwStrengthGrades);
+      return defaultKeys(boltStrengthGrades);
     }
   }
 
@@ -125,11 +125,11 @@
     return Number.isFinite(stored) && stored > 0 ? stored : null;
   }
 
-  const loadType = firstDefault(screwStrengthLoadTypes);
-  const shownSeries = defaultKeys(screwStrengthSeries);
+  const loadType = firstDefault(boltStrengthLoadTypes);
+  const shownSeries = defaultKeys(boltStrengthSeries);
   const shownGrades = storedGrades();
-  let loadCase = storedChoice(LOAD_CASE_STORAGE_KEY, screwStrengthLoadCases);
-  let method = storedChoice(METHOD_STORAGE_KEY, screwStrengthTighteningMethods);
+  let loadCase = storedChoice(LOAD_CASE_STORAGE_KEY, boltStrengthLoadCases);
+  let method = storedChoice(METHOD_STORAGE_KEY, boltStrengthTighteningMethods);
   let force = storedForce();
   let showUts = localStorage.getItem(UTS_STORAGE_KEY) === "1";
   let showFine = localStorage.getItem(FINE_STORAGE_KEY) === "1";
@@ -137,7 +137,7 @@
   // The non-default thread series (today just "fine"). "Include Fine Pitches"
   // adds them to / removes them from the shown-series set; the table build
   // itself still just reads that set.
-  const FINE_SERIES = screwStrengthSeries
+  const FINE_SERIES = boltStrengthSeries
     .filter((entry) => !entry.shownByDefault)
     .map((entry) => entry.key);
 
@@ -151,12 +151,12 @@
   // The minimum-ultimate-tensile load type, shown as a second value per cell
   // when "Show UTS Load" is ticked. The estimate itself always tracks proof
   // loads (loadType); this is reference only.
-  const utsType = screwStrengthLoadTypes.find((t) => t.key === "tensile");
+  const utsType = boltStrengthLoadTypes.find((t) => t.key === "tensile");
 
   // --- Data access ---
 
   function visibleThreads() {
-    return screwStrengthThreads.filter(
+    return boltStrengthThreads.filter(
       (thread) =>
         shownSeries.has(thread.series) &&
         !SECOND_CHOICE_DIAMETERS.has(thread.diameter)
@@ -164,7 +164,7 @@
   }
 
   function visibleGrades() {
-    return screwStrengthGrades.filter((grade) => shownGrades.has(grade.key));
+    return boltStrengthGrades.filter((grade) => shownGrades.has(grade.key));
   }
 
   // The tabulated load for one thread in one class, or null where ISO 898-1
@@ -309,7 +309,7 @@
   }
 
   function buildLoadCases() {
-    screwStrengthLoadCases.forEach((entry) => {
+    boltStrengthLoadCases.forEach((entry) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "est-case";
@@ -338,7 +338,7 @@
   }
 
   function buildMethods() {
-    screwStrengthTighteningMethods.forEach((entry) => {
+    boltStrengthTighteningMethods.forEach((entry) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "est-method";
@@ -360,7 +360,7 @@
   }
 
   function buildGradeToggles() {
-    screwStrengthGrades.forEach((grade) => {
+    boltStrengthGrades.forEach((grade) => {
       const label = document.createElement("label");
       label.className = "est-grade-toggle";
       label.dataset.key = grade.key;
@@ -381,7 +381,7 @@
   }
 
   function buildNotes() {
-    const notes = screwStrengthNotes[loadType.key] || [];
+    const notes = boltStrengthNotes[loadType.key] || [];
     if (!notes.length) return;
 
     const heading = document.createElement("h4");
@@ -597,7 +597,7 @@
   // --- Controls ---
 
   function setLoadCase(key) {
-    loadCase = screwStrengthLoadCases.find((entry) => entry.key === key) || loadCase;
+    loadCase = boltStrengthLoadCases.find((entry) => entry.key === key) || loadCase;
     localStorage.setItem(LOAD_CASE_STORAGE_KEY, loadCase.key);
     syncPickers();
     renderTable();
@@ -605,7 +605,7 @@
 
   function setMethod(key) {
     method =
-      screwStrengthTighteningMethods.find((entry) => entry.key === key) || method;
+      boltStrengthTighteningMethods.find((entry) => entry.key === key) || method;
     localStorage.setItem(METHOD_STORAGE_KEY, method.key);
     syncPickers();
     renderTable();
@@ -614,7 +614,7 @@
   function persistGrades() {
     localStorage.setItem(
       GRADES_STORAGE_KEY,
-      JSON.stringify(screwStrengthGrades.map((g) => g.key).filter((k) => shownGrades.has(k)))
+      JSON.stringify(boltStrengthGrades.map((g) => g.key).filter((k) => shownGrades.has(k)))
     );
   }
 

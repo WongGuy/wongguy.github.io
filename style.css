@@ -21,7 +21,7 @@
   --series-4: #7B3FA0;
   --series-5: #A87400;
   --plot-grid: #D7DEE3;
-  /* Fills for the screw size estimation table: the header rows, the recommended
+  /* Fills for the bolt size estimation table: the header rows, the recommended
      cell, and the header of a property class that has no size to recommend. */
   --est-head-bg: #E7EEF3;
   --pick-bg: #C2E6C7;
@@ -1296,7 +1296,7 @@ a.fc-result .fc-result-label {
   min-width: 12rem;
 }
 
-/* --- Screw size estimation --- */
+/* --- Bolt size estimation --- */
 
 .est-force-row {
   display: flex;

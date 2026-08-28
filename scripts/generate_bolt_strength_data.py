@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Regenerates the generated blocks in screw-strength-data.js from the ISO 898-1
+"""Regenerates the generated blocks in bolt-strength-data.js from the ISO 898-1
 workbook checked into assets/standards/ISO/screw/.
 
-Run with no arguments to rewrite screw-strength-data.js in place:
+Run with no arguments to rewrite bolt-strength-data.js in place:
 
-    python scripts/generate_screw_strength_data.py
+    python scripts/generate_bolt_strength_data.py
 
 Run with --check to print the generated blocks to stdout instead (useful for
 diffing against the current file without touching it):
 
-    python scripts/generate_screw_strength_data.py --check
+    python scripts/generate_bolt_strength_data.py --check
 
 Source
 ------
@@ -48,9 +48,9 @@ Design notes
 - UNITS: the source tables are already metric (N, mm^2), so unlike the NASA
   generator nothing is converted -- every number is the source value, parsed
   as a float and printed back with no rounding or padding.
-- SHAPE: one flat `screwStrengthThreads` array holding both thread series,
+- SHAPE: one flat `boltStrengthThreads` array holding both thread series,
   sorted by diameter ascending then pitch descending, with a `series` key on
-  each row. screw-strength-app.js filters on that key, so the sort order
+  each row. bolt-strength-app.js filters on that key, so the sort order
   survives filtering -- and showing both series at once (the fine-thread
   toggle this shape exists for) still reads M10x1.5, M10x1.25, M10x1.
 - Each row carries a `loads` map keyed by load type ("proof"/"tensile") and
@@ -74,7 +74,7 @@ ROOT = Path(__file__).resolve().parent.parent
 WORKBOOK = (
     ROOT / "assets" / "standards" / "ISO" / "screw" / "ISO Standards - ISO 898-1.xlsx"
 )
-DATA_JS = ROOT / "tools" / "screw-strength" / "screw-strength-data.js"
+DATA_JS = ROOT / "tools" / "bolt-strength" / "bolt-strength-data.js"
 
 NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
 
@@ -401,7 +401,7 @@ def js_bool(value):
 
 
 def render_series_block(series):
-    lines = ["const screwStrengthSeries = ["]
+    lines = ["const boltStrengthSeries = ["]
     for s in series:
         lines.append(
             "  { "
@@ -419,7 +419,7 @@ def render_series_block(series):
 
 
 def render_load_types_block(load_types):
-    lines = ["const screwStrengthLoadTypes = ["]
+    lines = ["const boltStrengthLoadTypes = ["]
     for t in load_types:
         lines.append("  {")
         lines.append(f'    key: {js_str(t["key"])},')
@@ -432,7 +432,7 @@ def render_load_types_block(load_types):
 
 
 def render_grades_block(grades):
-    lines = ["const screwStrengthGrades = ["]
+    lines = ["const boltStrengthGrades = ["]
     for g in grades:
         lines.append(
             "  { "
@@ -452,7 +452,7 @@ def render_grades_block(grades):
 
 def render_threads_block(threads, load_types, grades):
     grade_order = [g["key"] for g in grades]
-    lines = ["const screwStrengthThreads = ["]
+    lines = ["const boltStrengthThreads = ["]
     for t in threads:
         lines.append("  {")
         lines.append(
@@ -487,7 +487,7 @@ def render_threads_block(threads, load_types, grades):
 
 
 def render_notes_block(notes, load_types):
-    lines = ["const screwStrengthNotes = {"]
+    lines = ["const boltStrengthNotes = {"]
     for load_type in load_types:
         entries = notes.get(load_type["key"], [])
         if not entries:
@@ -502,11 +502,11 @@ def render_notes_block(notes, load_types):
 
 
 BLOCKS = (
-    ("screwStrengthSeries", re.compile(r"const screwStrengthSeries = \[.*?\n\];", re.DOTALL)),
-    ("screwStrengthLoadTypes", re.compile(r"const screwStrengthLoadTypes = \[.*?\n\];", re.DOTALL)),
-    ("screwStrengthGrades", re.compile(r"const screwStrengthGrades = \[.*?\n\];", re.DOTALL)),
-    ("screwStrengthThreads", re.compile(r"const screwStrengthThreads = \[.*?\n\];", re.DOTALL)),
-    ("screwStrengthNotes", re.compile(r"const screwStrengthNotes = \{.*?\n\};", re.DOTALL)),
+    ("boltStrengthSeries", re.compile(r"const boltStrengthSeries = \[.*?\n\];", re.DOTALL)),
+    ("boltStrengthLoadTypes", re.compile(r"const boltStrengthLoadTypes = \[.*?\n\];", re.DOTALL)),
+    ("boltStrengthGrades", re.compile(r"const boltStrengthGrades = \[.*?\n\];", re.DOTALL)),
+    ("boltStrengthThreads", re.compile(r"const boltStrengthThreads = \[.*?\n\];", re.DOTALL)),
+    ("boltStrengthNotes", re.compile(r"const boltStrengthNotes = \{.*?\n\};", re.DOTALL)),
 )
 
 
@@ -515,11 +515,11 @@ def main():
 
     series, load_types, grades, threads, notes = build_tables()
     rendered = {
-        "screwStrengthSeries": render_series_block(series),
-        "screwStrengthLoadTypes": render_load_types_block(load_types),
-        "screwStrengthGrades": render_grades_block(grades),
-        "screwStrengthThreads": render_threads_block(threads, load_types, grades),
-        "screwStrengthNotes": render_notes_block(notes, load_types),
+        "boltStrengthSeries": render_series_block(series),
+        "boltStrengthLoadTypes": render_load_types_block(load_types),
+        "boltStrengthGrades": render_grades_block(grades),
+        "boltStrengthThreads": render_threads_block(threads, load_types, grades),
+        "boltStrengthNotes": render_notes_block(notes, load_types),
     }
 
     if check_only:
