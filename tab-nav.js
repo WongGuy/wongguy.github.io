@@ -31,6 +31,15 @@ function centerInBar(bar, el) {
   bar.scrollLeft += elBox.left - barBox.left - offset;
 }
 
+// Compare page identities ignoring a ".html" extension. Some hosts (GitHub
+// Pages) keep the extension in the URL, others (Cloudflare Pages) serve the
+// same file at a clean, extensionless path and redirect the ".html" URL
+// there — so the location's filename won't always match the ".html" hrefs in
+// site-nav-data.js. Strip the extension from both before comparing.
+function pageKey(name) {
+  return name.replace(/\.html$/, "");
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.querySelector(".site-nav");
   if (!container || typeof siteNav === "undefined") return;
@@ -39,13 +48,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const file = window.location.pathname.split("/").pop();
     // index.html is a bare redirect, so a bare directory URL lands on the
     // first page of the first category.
-    return file && file !== "index.html" ? file : siteNav[0].pages[0].href;
+    return file && pageKey(file) !== "index"
+      ? file
+      : siteNav[0].pages[0].href;
   })();
+  const currentKey = pageKey(currentFile);
 
   const activeCategoryIndex = Math.max(
     0,
     siteNav.findIndex((category) =>
-      category.pages.some((page) => page.href === currentFile)
+      category.pages.some((page) => pageKey(page.href) === currentKey)
     )
   );
 
@@ -69,7 +81,8 @@ document.addEventListener("DOMContentLoaded", () => {
       link.className = "tab-nav-link";
       link.href = page.href;
       link.textContent = page.label;
-      if (page.href === currentFile) link.setAttribute("aria-current", "page");
+      if (pageKey(page.href) === currentKey)
+        link.setAttribute("aria-current", "page");
 
       const item = document.createElement("li");
       item.appendChild(link);
