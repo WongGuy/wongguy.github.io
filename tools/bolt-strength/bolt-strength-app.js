@@ -42,10 +42,16 @@
 // "Include Fine Pitches" is on. Columns are keyed by the class designations in
 // bolt-strength-data.js.
 //
+// The loads the tool works from are 75% of the ISO 898-1 proof loads, not the
+// full proof loads — a common preload ceiling, and the margin this rough
+// estimate leans on. The derate is applied in loadOf() and so flows into the
+// displayed cell values, the bolded minimum, and the highlighted pick alike.
+//
 // The estimate (bolded minimum, highlighted pick, trimmed row window) always
-// tracks the proof loads; "Show UTS Load" is reference only and doesn't move
-// anything. The two values in a cell carry no labels of their own — the
-// legend's sample cell names them once instead.
+// tracks those 75%-of-proof loads; "Show UTS Load" adds the full ISO 898-1
+// minimum ultimate tensile load as reference only and doesn't move anything.
+// The two values in a cell carry no labels of their own — the legend's sample
+// cell names them once instead.
 //
 // The load type (proof / minimum ultimate tensile) and the thread series
 // (coarse / fine) are read from their lists in the data file rather than
@@ -85,6 +91,20 @@
   const EMPHASIZED_GRADES = new Set(["8.8", "10.9", "12.9"]);
 
   const numberFormat = new Intl.NumberFormat("en-US");
+
+  // The tool sizes bolts against 75% of the ISO 898-1 proof load rather than
+  // the full proof load — a common preload ceiling. Applied to the proof
+  // values only (see loadOf); the optional "Show UTS Load" column still shows
+  // the full ISO 898-1 minimum ultimate tensile load.
+  const PROOF_LOAD_FACTOR = 0.75;
+  const PROOF_LOAD_PERCENT = Math.round(PROOF_LOAD_FACTOR * 100);
+
+  function deratedProof(value) {
+    const scaled = value * PROOF_LOAD_FACTOR;
+    // Round to 3 significant figures, matching the ISO tables' precision.
+    const step = Math.pow(10, Math.floor(Math.log10(scaled)) - 2);
+    return Math.round(scaled / step) * step;
+  }
 
   function titleCase(text) {
     return text.replace(/\b\w/g, (c) => c.toUpperCase());
@@ -172,7 +192,8 @@
   function loadOf(thread, gradeKey) {
     const values = thread.loads[loadType.key];
     const value = values ? values[gradeKey] : undefined;
-    return typeof value === "number" ? value : null;
+    if (typeof value !== "number") return null;
+    return loadType.key === "proof" ? deratedProof(value) : value;
   }
 
   // The minimum ultimate tensile load for the same thread/class, or null where
@@ -381,7 +402,13 @@
   }
 
   function buildNotes() {
-    const notes = boltStrengthNotes[loadType.key] || [];
+    const notes = (boltStrengthNotes[loadType.key] || []).slice();
+    if (loadType.key === "proof") {
+      notes.unshift(
+        `Loads shown are ${PROOF_LOAD_PERCENT}% of the ISO 898-1 proof load; ` +
+          "the notes below quote the full ISO 898-1 values."
+      );
+    }
     if (!notes.length) return;
 
     const heading = document.createElement("h4");
@@ -418,7 +445,11 @@
     const grades = visibleGrades();
     const steps = totalSteps();
 
-    tableTitleEl.textContent = `${titleCase(loadType.label)} (N)`;
+    const shownLabel =
+      loadType.key === "proof"
+        ? `${PROOF_LOAD_PERCENT}% ${loadType.label}`
+        : loadType.label;
+    tableTitleEl.textContent = `${titleCase(shownLabel)} (N)`;
     stepsNoteEl.textContent =
       `Load condition: ${stepLabel(loadCase.steps)} | ` +
       `Tightening method: ${stepLabel(method.steps)} | ` +
@@ -565,7 +596,9 @@
   function legendSample() {
     const cell = document.createElement("span");
     cell.className = "est-legend-cell";
-    cell.appendChild(document.createTextNode("Proof Load (N)"));
+    cell.appendChild(
+      document.createTextNode(`${PROOF_LOAD_PERCENT}% Proof Load (N)`)
+    );
 
     const uts = document.createElement("span");
     uts.className = "est-cell-uts";
