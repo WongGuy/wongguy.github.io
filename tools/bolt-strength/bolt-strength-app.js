@@ -17,9 +17,11 @@
 //   Stepping walks the rows that actually have a value in that column, not
 //   every row, so class 9.8 (which ISO 898-1 stops tabulating above M16)
 //   steps through its own sizes instead of stepping onto blanks. A class that
-//   can't see the estimate through — nothing in it carries the load, or the
-//   steps run off the bottom of it — has no size to recommend, so its column
-//   header is marked instead and nothing in the column is marked.
+//   can't see the estimate through has its column header marked. If nothing in
+//   the class carries the load at all there's no bare minimum either, so
+//   nothing in the column is marked; if a bare minimum exists but the steps
+//   run off the bottom of the column, that yellow minimum cell stays marked
+//   and only the green recommendation is dropped.
 //
 //   The row label is always a merged "Size" cell plus a per-row "Pitch" cell.
 //   "Include Fine Pitches" just brings the fine-thread rows in below their
@@ -255,6 +257,12 @@
   // then the next tabulated size up, and its estimate steps from there, so the
   // split gets its own `coarseMinGroup` / `coarsePickGroup` (the marks the
   // renderer puts on the coarse row instead of the whole-group ones).
+  //
+  // `unsupported` (the column header mark) is set two ways. When nothing in
+  // the class carries the load, there's no bare minimum to show either, so
+  // every field stays -1. When a bare minimum exists but stepping down runs
+  // off the bottom of the column, the yellow minimum still marks its cell and
+  // only the green pick is dropped (`pickGroup` -1).
   function computeColumn(threads, groups, grade, steps) {
     const rows = [];
     groups.forEach((group, index) => {
@@ -274,12 +282,16 @@
       (index) => groupLoad(threads, groups[index], grade.key) >= force
     );
 
-    // Either nothing in the class carries the load at all, or the steps run
-    // off the bottom of it. Both mean the class has no size to recommend, so
-    // no cell is marked and the column header carries the answer.
-    if (position === -1 || position + steps > rows.length - 1) {
+    // Nothing in the class carries the load at all: no bare minimum, so no
+    // cell is marked and only the column header carries the answer.
+    if (position === -1) {
       return Object.assign({}, blank, { unsupported: true });
     }
+
+    // The bare minimum exists. The steps may still run off the bottom of the
+    // column, in which case there's no recommendation to point at — the
+    // header is flagged but the yellow minimum cell stays marked.
+    const offBottom = position + steps > rows.length - 1;
 
     const minGroup = rows[position];
     const coarseLoad = loadOf(threads[groups[minGroup].indices[0]], grade.key);
@@ -294,32 +306,32 @@
 
     return {
       minGroup: minGroup,
-      pickGroup: rows[position + steps],
+      pickGroup: offBottom ? -1 : rows[position + steps],
       coarseMinGroup: split ? rows[position + 1] : -1,
       coarsePickGroup:
-        split && position + 1 + steps <= rows.length - 1
+        !offBottom && split && position + 1 + steps <= rows.length - 1
           ? rows[position + 1 + steps]
           : -1,
-      unsupported: false,
+      unsupported: offBottom,
     };
   }
 
-  // One size group of context above the first bolded group and one below the
-  // last estimate. With nothing marked (no force yet, or nothing big enough)
-  // every group is shown instead.
+  // One size group of context above the first marked group and one below the
+  // last. With nothing marked (no force yet, or nothing big enough) every
+  // group is shown instead.
   function groupWindow(groups, columns) {
-    const mins = [];
-    const picks = [];
+    const marks = [];
     columns.forEach((c) => {
-      if (c.minGroup >= 0) mins.push(c.minGroup);
-      if (c.coarseMinGroup >= 0) mins.push(c.coarseMinGroup);
-      if (c.pickGroup >= 0) picks.push(c.pickGroup);
-      if (c.coarsePickGroup >= 0) picks.push(c.coarsePickGroup);
+      [c.minGroup, c.coarseMinGroup, c.pickGroup, c.coarsePickGroup].forEach(
+        (index) => {
+          if (index >= 0) marks.push(index);
+        }
+      );
     });
-    if (!mins.length) return { first: 0, last: groups.length - 1 };
+    if (!marks.length) return { first: 0, last: groups.length - 1 };
     return {
-      first: Math.max(0, Math.min.apply(null, mins) - 1),
-      last: Math.min(groups.length - 1, Math.max.apply(null, picks) + 1),
+      first: Math.max(0, Math.min.apply(null, marks) - 1),
+      last: Math.min(groups.length - 1, Math.max.apply(null, marks) + 1),
     };
   }
 
