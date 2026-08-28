@@ -21,12 +21,26 @@
 //   steps run off the bottom of it — has no size to recommend, so its column
 //   header is marked instead and nothing in the column is marked.
 //
+//   The row label is always a merged "Size" cell plus a per-row "Pitch" cell.
+//   "Include Fine Pitches" just brings the fine-thread rows in below their
+//   coarse sibling (the Size cell then spans them); with it off each size is a
+//   lone coarse row. The estimate steps over sizes, not individual threads: a
+//   size carries the load if its strongest pitch does. The bold/highlight then
+//   lands only on the pitch rows that individually carry the force, not the
+//   whole size group — so when a size's coarse thread falls short while a finer
+//   pitch clears it, the coarse row stays unmarked and the coarse mark moves to
+//   the next size up (which steps down from there like any other). Row trimming
+//   keeps whole size groups.
+//
+// Only ISO 262 first-choice nominal diameters are ever shown; the second-choice
+// sizes are filtered out and there's no control to bring them back.
+//
 // Six bits of state are remembered in localStorage between visits: the force
 // per bolt, the selected load condition, the selected tightening method, which
 // property class columns are shown, whether the "Show UTS Load" toggle adds the
-// minimum ultimate tensile load as a second value per cell, and whether the
-// "Show Cursed (2nd choice) Sizes" toggle un-hides the ISO 262 second-choice
-// diameters. Columns are keyed by the class designations in screw-strength-data.js.
+// minimum ultimate tensile load as a second value per cell, and whether
+// "Include Fine Pitches" is on. Columns are keyed by the class designations in
+// screw-strength-data.js.
 //
 // The estimate (bolded minimum, highlighted pick, trimmed row window) always
 // tracks the proof loads; "Show UTS Load" is reference only and doesn't move
@@ -42,7 +56,7 @@
   const forceEl = document.getElementById("force-input");
   const forceClearEl = document.getElementById("force-clear");
   const utsToggleEl = document.getElementById("uts-toggle");
-  const cursedToggleEl = document.getElementById("cursed-toggle");
+  const fineToggleEl = document.getElementById("fine-toggle");
   const loadCaseLabelEl = document.getElementById("load-case-label");
   const loadCaseRowEl = document.getElementById("load-case-row");
   const methodLabelEl = document.getElementById("method-label");
@@ -61,11 +75,10 @@
   const METHOD_STORAGE_KEY = "screwEstMethod";
   const GRADES_STORAGE_KEY = "screwEstGrades";
   const UTS_STORAGE_KEY = "screwEstShowUts";
-  const CURSED_STORAGE_KEY = "screwEstShowCursed";
+  const FINE_STORAGE_KEY = "screwEstShowFine";
 
-  // ISO 262 second-choice nominal diameters. Hidden by default — tick "Show
-  // Cursed (2nd choice) Sizes" to bring their rows back.
-  const CURSED_DIAMETERS = new Set([3.5, 7, 14, 18, 22, 27, 33, 39]);
+  // ISO 262 second-choice nominal diameters. Always filtered out of the table.
+  const SECOND_CHOICE_DIAMETERS = new Set([3.5, 7, 14, 18, 22, 27, 33, 39]);
 
   // Property classes drawn bold in the column picker — the everyday high-strength
   // choices, so they read first in the list.
@@ -119,7 +132,21 @@
   let method = storedChoice(METHOD_STORAGE_KEY, screwStrengthTighteningMethods);
   let force = storedForce();
   let showUts = localStorage.getItem(UTS_STORAGE_KEY) === "1";
-  let showCursed = localStorage.getItem(CURSED_STORAGE_KEY) === "1";
+  let showFine = localStorage.getItem(FINE_STORAGE_KEY) === "1";
+
+  // The non-default thread series (today just "fine"). "Include Fine Pitches"
+  // adds them to / removes them from the shown-series set; the table build
+  // itself still just reads that set.
+  const FINE_SERIES = screwStrengthSeries
+    .filter((entry) => !entry.shownByDefault)
+    .map((entry) => entry.key);
+
+  function syncSeries() {
+    FINE_SERIES.forEach((key) => {
+      if (showFine) shownSeries.add(key);
+      else shownSeries.delete(key);
+    });
+  }
 
   // The minimum-ultimate-tensile load type, shown as a second value per cell
   // when "Show UTS Load" is ticked. The estimate itself always tracks proof
@@ -132,7 +159,7 @@
     return screwStrengthThreads.filter(
       (thread) =>
         shownSeries.has(thread.series) &&
-        (showCursed || !CURSED_DIAMETERS.has(thread.diameter))
+        !SECOND_CHOICE_DIAMETERS.has(thread.diameter)
     );
   }
 
@@ -160,51 +187,118 @@
     return loadCase.steps + method.steps;
   }
 
+  // --- Size groups ---
+
+  // Consecutive visible threads sharing a nominal size, as
+  // [{ size, indices: [threadIndex, ...] }]. With "Include Fine Pitches" off
+  // every group holds a single thread, so the stepping below is unchanged.
+  // Threads are pre-sorted by diameter then pitch, so same-size rows are
+  // always adjacent and the first index of a group is its coarsest pitch.
+  function groupThreads(threads) {
+    const groups = [];
+    threads.forEach((thread, index) => {
+      const last = groups[groups.length - 1];
+      if (showFine && last && last.size === thread.size) {
+        last.indices.push(index);
+      } else {
+        groups.push({ size: thread.size, indices: [index] });
+      }
+    });
+    return groups;
+  }
+
+  // The load a size offers a class: the strongest pitch of that size the class
+  // is tabulated at, or null if the class isn't tabulated at any of them. With
+  // fine pitches off this is just the single thread's load.
+  function groupLoad(threads, group, gradeKey) {
+    let best = null;
+    group.indices.forEach((index) => {
+      const value = loadOf(threads[index], gradeKey);
+      if (value !== null && (best === null || value > best)) best = value;
+    });
+    return best;
+  }
+
   // --- The estimate ---
 
-  // For one class column: which row is the bare minimum, and which row the
-  // steps land on. Both are indices into `threads`; -1 means "none".
+  // For one class column: which size group is the bare minimum, and which the
+  // steps land on. All four fields are indices into `groups`; -1 means "none".
   //
-  // `rows` lists only the indices this class is tabulated at, so the steps
+  // `rows` lists only the groups this class is tabulated at, so the steps
   // count sizes that actually exist in the column. Loads climb with size, so
-  // the first row at or above the force is also the smallest one.
-  function computeColumn(threads, grade, steps) {
+  // the first group at or above the force is also the smallest one.
+  //
+  // A size group qualifies on its strongest pitch. With "Include Fine Pitches"
+  // on, that can leave the group's coarse thread sitting below the force while
+  // a finer pitch clears it — a "split". The coarse thread's own minimum is
+  // then the next tabulated size up, and its estimate steps from there, so the
+  // split gets its own `coarseMinGroup` / `coarsePickGroup` (the marks the
+  // renderer puts on the coarse row instead of the whole-group ones).
+  function computeColumn(threads, groups, grade, steps) {
     const rows = [];
-    threads.forEach((thread, index) => {
-      if (loadOf(thread, grade.key) !== null) rows.push(index);
+    groups.forEach((group, index) => {
+      if (groupLoad(threads, group, grade.key) !== null) rows.push(index);
     });
 
-    const blank = { minIndex: -1, pickIndex: -1, unsupported: false };
+    const blank = {
+      minGroup: -1,
+      pickGroup: -1,
+      coarseMinGroup: -1,
+      coarsePickGroup: -1,
+      unsupported: false,
+    };
     if (force === null || !rows.length) return blank;
 
     const position = rows.findIndex(
-      (index) => loadOf(threads[index], grade.key) >= force
+      (index) => groupLoad(threads, groups[index], grade.key) >= force
     );
 
     // Either nothing in the class carries the load at all, or the steps run
     // off the bottom of it. Both mean the class has no size to recommend, so
-    // neither cell is marked and the column header carries the answer.
+    // no cell is marked and the column header carries the answer.
     if (position === -1 || position + steps > rows.length - 1) {
-      return { minIndex: -1, pickIndex: -1, unsupported: true };
+      return Object.assign({}, blank, { unsupported: true });
     }
 
+    const minGroup = rows[position];
+    const coarseLoad = loadOf(threads[groups[minGroup].indices[0]], grade.key);
+    // Split only when the coarse thread is tabulated here, falls short, and
+    // there's a next size up to move it to. Off the bottom of the column the
+    // coarse pick is simply dropped — the finer pitches still carry the answer.
+    const split =
+      showFine &&
+      coarseLoad !== null &&
+      coarseLoad < force &&
+      position + 1 < rows.length;
+
     return {
-      minIndex: rows[position],
-      pickIndex: rows[position + steps],
+      minGroup: minGroup,
+      pickGroup: rows[position + steps],
+      coarseMinGroup: split ? rows[position + 1] : -1,
+      coarsePickGroup:
+        split && position + 1 + steps <= rows.length - 1
+          ? rows[position + 1 + steps]
+          : -1,
       unsupported: false,
     };
   }
 
-  // One row of context above the first bolded cell and one below the last
-  // estimate. With nothing marked (no force yet, or nothing big enough) the
-  // whole table is shown instead.
-  function rowWindow(threads, columns) {
-    const mins = columns.filter((c) => c.minIndex >= 0).map((c) => c.minIndex);
-    if (!mins.length) return { first: 0, last: threads.length - 1 };
-    const picks = columns.filter((c) => c.pickIndex >= 0).map((c) => c.pickIndex);
+  // One size group of context above the first bolded group and one below the
+  // last estimate. With nothing marked (no force yet, or nothing big enough)
+  // every group is shown instead.
+  function groupWindow(groups, columns) {
+    const mins = [];
+    const picks = [];
+    columns.forEach((c) => {
+      if (c.minGroup >= 0) mins.push(c.minGroup);
+      if (c.coarseMinGroup >= 0) mins.push(c.coarseMinGroup);
+      if (c.pickGroup >= 0) picks.push(c.pickGroup);
+      if (c.coarsePickGroup >= 0) picks.push(c.coarsePickGroup);
+    });
+    if (!mins.length) return { first: 0, last: groups.length - 1 };
     return {
       first: Math.max(0, Math.min.apply(null, mins) - 1),
-      last: Math.min(threads.length - 1, Math.max.apply(null, picks) + 1),
+      last: Math.min(groups.length - 1, Math.max.apply(null, picks) + 1),
     };
   }
 
@@ -320,6 +414,7 @@
 
   function renderTable() {
     const threads = visibleThreads();
+    const groups = groupThreads(threads);
     const grades = visibleGrades();
     const steps = totalSteps();
 
@@ -338,12 +433,30 @@
       return;
     }
 
-    const columns = grades.map((grade) => computeColumn(threads, grade, steps));
-    const bounds = rowWindow(threads, columns);
+    const columns = grades.map((grade) => computeColumn(threads, groups, grade, steps));
+    const bounds = groupWindow(groups, columns);
 
     const head = document.createElement("thead");
+
+    // Grouping row: "Thread" over Size + Pitch, "Strength Class" over the class
+    // columns.
+    const groupRow = document.createElement("tr");
+    const threadHead = headerCell("Thread");
+    threadHead.scope = "colgroup";
+    threadHead.colSpan = 2;
+    threadHead.classList.add("est-col-divide");
+    groupRow.appendChild(threadHead);
+    const classHead = headerCell("Strength Class");
+    classHead.scope = "colgroup";
+    classHead.colSpan = grades.length;
+    groupRow.appendChild(classHead);
+    head.appendChild(groupRow);
+
     const headRow = document.createElement("tr");
-    headRow.appendChild(headerCell("Thread"));
+    headRow.appendChild(headerCell("Size"));
+    const pitchHead = headerCell("Pitch");
+    pitchHead.classList.add("est-col-divide");
+    headRow.appendChild(pitchHead);
     grades.forEach((grade, column) =>
       headRow.appendChild(headerCell(grade.label, columns[column].unsupported))
     );
@@ -351,38 +464,66 @@
     tableEl.appendChild(head);
 
     const body = document.createElement("tbody");
-    for (let index = bounds.first; index <= bounds.last; index++) {
-      const thread = threads[index];
-      const row = document.createElement("tr");
+    for (let g = bounds.first; g <= bounds.last; g++) {
+      const group = groups[g];
 
-      const label = document.createElement("td");
-      label.className = "est-row-label";
-      label.textContent = thread.designation;
-      row.appendChild(label);
+      group.indices.forEach((threadIndex, rowInGroup) => {
+        const thread = threads[threadIndex];
+        const row = document.createElement("tr");
+        // The heavier rule between size groups only earns its place when a
+        // group can span multiple pitch rows — i.e. with fine pitches shown.
+        if (showFine && rowInGroup === 0) row.classList.add("est-group-start");
 
-      grades.forEach((grade, column) => {
-        const cell = document.createElement("td");
-        const value = loadOf(thread, grade.key);
-        cell.textContent = value === null ? "—" : numberFormat.format(value);
-        if (showUts && value !== null) {
-          const uts = utsLoadOf(thread, grade.key);
-          const utsEl = document.createElement("span");
-          utsEl.className = "est-cell-uts";
-          utsEl.textContent = uts === null ? "—" : numberFormat.format(uts);
-          cell.appendChild(utsEl);
+        if (rowInGroup === 0) {
+          const sizeCell = document.createElement("td");
+          sizeCell.className = "est-row-label est-row-size";
+          sizeCell.rowSpan = group.indices.length;
+          sizeCell.textContent = group.size;
+          row.appendChild(sizeCell);
         }
-        if (index === columns[column].minIndex) cell.classList.add("est-cell--min");
-        if (index === columns[column].pickIndex) cell.classList.add("est-cell--pick");
-        row.appendChild(cell);
-      });
+        const pitchCell = document.createElement("td");
+        pitchCell.className = "est-row-pitch est-col-divide";
+        pitchCell.textContent = String(thread.pitch);
+        row.appendChild(pitchCell);
 
-      body.appendChild(row);
+        grades.forEach((grade, column) => {
+          const col = columns[column];
+          const cell = document.createElement("td");
+          const value = loadOf(thread, grade.key);
+          cell.textContent = value === null ? "—" : numberFormat.format(value);
+          if (showUts && value !== null) {
+            const uts = utsLoadOf(thread, grade.key);
+            const utsEl = document.createElement("span");
+            utsEl.className = "est-cell-uts";
+            utsEl.textContent = uts === null ? "—" : numberFormat.format(uts);
+            cell.appendChild(utsEl);
+          }
+          // The mark only belongs on pitch rows that individually carry the
+          // force. A size group qualifies on its strongest pitch, so with fine
+          // pitches shown its coarse row (index 0 of the group) can sit below
+          // the force while a finer pitch clears it: that coarse row stays
+          // unmarked and the mark moves to the coarse thread one size up
+          // (coarseMinGroup / coarsePickGroup). With fine pitches off every
+          // group is a lone coarse row and the split never arises.
+          const carries = value !== null && force !== null && value >= force;
+          const coarseRow = rowInGroup === 0;
+          const minTarget =
+            coarseRow && col.coarseMinGroup >= 0 ? col.coarseMinGroup : col.minGroup;
+          const pickTarget =
+            coarseRow && col.coarsePickGroup >= 0 ? col.coarsePickGroup : col.pickGroup;
+          if (carries && g === minTarget) cell.classList.add("est-cell--min");
+          if (carries && g === pickTarget) cell.classList.add("est-cell--pick");
+          row.appendChild(cell);
+        });
+
+        body.appendChild(row);
+      });
     }
     tableEl.appendChild(body);
 
     renderLegend(
-      columns.some((c) => c.minIndex >= 0 && c.minIndex !== c.pickIndex),
-      columns.some((c) => c.pickIndex >= 0),
+      columns.some((c) => c.minGroup >= 0 && c.minGroup !== c.pickGroup),
+      columns.some((c) => c.pickGroup >= 0),
       columns.some((c) => c.unsupported)
     );
     renderMessage();
@@ -504,10 +645,11 @@
     renderTable();
   }
 
-  function setShowCursed(shown) {
-    showCursed = shown;
-    if (shown) localStorage.setItem(CURSED_STORAGE_KEY, "1");
-    else localStorage.removeItem(CURSED_STORAGE_KEY);
+  function setShowFine(shown) {
+    showFine = shown;
+    if (shown) localStorage.setItem(FINE_STORAGE_KEY, "1");
+    else localStorage.removeItem(FINE_STORAGE_KEY);
+    syncSeries();
     renderTable();
   }
 
@@ -538,9 +680,10 @@
   utsToggleEl.checked = showUts;
   utsToggleEl.addEventListener("change", () => setShowUts(utsToggleEl.checked));
 
-  cursedToggleEl.checked = showCursed;
-  cursedToggleEl.addEventListener("change", () => setShowCursed(cursedToggleEl.checked));
+  fineToggleEl.checked = showFine;
+  fineToggleEl.addEventListener("change", () => setShowFine(fineToggleEl.checked));
 
+  syncSeries();
   syncPickers();
   renderTable();
 })();

@@ -31,11 +31,32 @@
         <h2>404 &mdash; Page Not Found</h2>
       </div>
       <p class="placeholder-text">
-        Like a flanged-and-serrated nut in an active ISO or DIN standard, this page does not exist. Click a tool from the navigation bar above. 
+        Like a flanged-and-serrated nut in an active ISO or DIN standard, this page does not exist. Click a tool from the navigation bar above, or click the cow for a random page when you are done enjoying this page.
       </p>
+      <a class="not-found-gif-link" href="screw-selector.html" title="Take me somewhere">
+        <img class="not-found-gif" src="assets/images/404/cow-rotating.gif" alt="A rotating cow &mdash; click for a random page" />
+      </a>
     </section>
   </main>
 
   <footer></footer>
+
+  <script>
+    // Point the cow at a random real page, pulled from the nav structure so it
+    // keeps covering every page as the site grows (index.html is only a
+    // redirect and never appears in siteNav, so it's excluded for free).
+    (function () {
+      var link = document.querySelector(".not-found-gif-link");
+      if (!link || typeof siteNav === "undefined") return;
+      var pages = siteNav.reduce(function (acc, cat) {
+        return acc.concat(cat.pages.map(function (p) { return p.href; }));
+      }, []);
+      if (!pages.length) return;
+      link.addEventListener("click", function (e) {
+        e.preventDefault();
+        window.location.href = pages[Math.floor(Math.random() * pages.length)];
+      });
+    })();
+  </script>
 </body>
 </html>

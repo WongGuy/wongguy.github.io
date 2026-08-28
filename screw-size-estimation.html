@@ -29,28 +29,11 @@
       <div class="chart-card-header">
         <h2>Screw Size Estimation</h2>
         <div class="chart-card-subheader">
-          <h3>Uses ISO 898-1 Proof Loads and VDI guideline 2230 rough estimation steps</h3>
+          <h3>Uses ISO 898-1 proof loads and VDI guideline 2230 to return a rough screw size estimate. Use this as an initial sniff check before doing detailed analysis.</h3>
         </div>
       </div>
       <div class="chart-layout">
-        <div class="spec-group">
-          <h3 class="spec-group-title">Force Per Bolt (Leave blank to view full table)</h3>
-          <div class="est-force-row">
-            <button type="button" id="force-clear" class="est-force-clear">Clear</button>
-            <input
-              type="number"
-              id="force-input"
-              class="est-force-input"
-              min="0"
-              step="any"
-              inputmode="decimal"
-              placeholder="0"
-              aria-label="Force per bolt in newtons"
-            />
-            <span class="est-force-unit">N</span>
-          </div>
-        </div>
-
+        <hr class="chart-card-rule" />
         <div class="spec-group">
           <h3 class="spec-group-title">
             Load Condition: <span id="load-case-label" class="est-selected"></span>
@@ -76,6 +59,24 @@
         </div>
 
         <div class="spec-group">
+          <h3 class="spec-group-title">Force Per Bolt (Leave blank to view full table)</h3>
+          <div class="est-force-row">
+            <button type="button" id="force-clear" class="est-force-clear">Clear</button>
+            <input
+              type="number"
+              id="force-input"
+              class="est-force-input"
+              min="0"
+              step="any"
+              inputmode="decimal"
+              placeholder="0"
+              aria-label="Force per bolt in newtons"
+            />
+            <span class="est-force-unit">N</span>
+          </div>
+        </div>
+
+        <div class="spec-group">
           <h3 class="spec-group-title" id="table-title"></h3>
           <div class="est-toggle-row">
             <label class="est-uts-toggle">
@@ -83,8 +84,8 @@
               <span>Show UTS Load</span>
             </label>
             <label class="est-uts-toggle">
-              <input type="checkbox" id="cursed-toggle" />
-              <span>Show Cursed (2nd choice) Sizes</span>
+              <input type="checkbox" id="fine-toggle" />
+              <span>Include Fine Pitches</span>
             </label>
           </div>
           <p id="steps-note" class="est-steps-note"></p>

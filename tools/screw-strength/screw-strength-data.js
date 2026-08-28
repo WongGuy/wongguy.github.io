@@ -17,9 +17,9 @@
 // THREADS: one flat array covering both thread series, sorted by diameter
 // ascending then pitch descending, each row tagged with `series` ("coarse" or
 // "fine"). screw-strength-app.js shows only the series whose keys are in its
-// shown-series set — which today is just "coarse" — and filtering preserves
-// the sort order, so turning "fine" on later needs no data change and no
-// re-sorting: the table just gains M10x1.25 and M10x1 rows below M10x1.5.
+// shown-series set — "coarse" always, plus "fine" when "Include Fine Pitches"
+// is ticked — and filtering preserves the sort order, so the fine rows drop
+// straight in below their coarse siblings (M10x1.25 and M10x1 below M10x1.5).
 //
 // LOADS: each thread's `loads` map is keyed by load type first
 // ("proof" / "tensile") and then by property class key, so a load-type toggle

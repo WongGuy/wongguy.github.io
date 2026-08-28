@@ -21,8 +21,9 @@
   --series-4: #7B3FA0;
   --series-5: #A87400;
   --plot-grid: #D7DEE3;
-  /* Fills for the screw size estimation table: the recommended cell, and the
-     header of a property class that has no size to recommend. */
+  /* Fills for the screw size estimation table: the header rows, the recommended
+     cell, and the header of a property class that has no size to recommend. */
+  --est-head-bg: #E7EEF3;
   --pick-bg: #C2E6C7;
   --pick-text: #0E3D19;
   --fail-bg: #F2C4C0;
@@ -45,6 +46,7 @@
   --series-4: #C48CE6;
   --series-5: #E0BE55;
   --plot-grid: #2C3F4D;
+  --est-head-bg: #1E2E3B;
   --pick-bg: #1F4B2C;
   --pick-text: #D6F2DC;
   --fail-bg: #5A211D;
@@ -253,6 +255,19 @@ main {
   padding: 2rem 0;
 }
 
+.not-found-gif-link {
+  display: block;
+  width: max-content;
+  max-width: 100%;
+  margin: 0 auto 1rem;
+  cursor: pointer;
+}
+
+.not-found-gif {
+  display: block;
+  max-width: 100%;
+}
+
 .chart-card h2 {
   margin: 0;
   font-size: 1.15rem;
@@ -343,6 +358,14 @@ main {
   padding-left: 1.5rem;
   padding-right: 1.5rem;
   padding-top: 2rem;
+}
+
+/* Full-bleed rule closing off the card header from the first spec-group,
+   matching the 1px lines drawn between the groups below it. */
+.chart-card-rule {
+  border: 0;
+  border-top: 1px solid var(--panel-border);
+  margin: 0.75rem -1.5rem 0;
 }
 
 .spec-group-title {
@@ -1053,6 +1076,11 @@ a.fc-result .fc-result-label {
     padding-right: 0.75rem;
   }
 
+  .chart-card-rule {
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+  }
+
   .slider-sticky {
     margin: 0 -0.75rem;
     padding: 0.5rem 0.75rem;
@@ -1500,9 +1528,39 @@ a.fc-result .fc-result-label {
   text-align: center;
 }
 
+/* Both header rows get a light fill so they read as the header block. An
+   unsupported class keeps its own (heavier) header fill — see below. */
+.est-table thead th {
+  background: var(--est-head-bg);
+}
+
+/* Heavier vertical rule splitting the "Thread" columns (Size, Pitch) from the
+   "Strength Class" columns, carried all the way down the table. */
+.est-table .est-col-divide {
+  border-right-width: 2px;
+}
+
 .est-table .est-row-label {
   text-align: left;
   color: var(--text-dim);
+}
+
+/* The row label is a merged Size cell plus a per-row Pitch cell, with a
+   heavier rule starting each size group. "Include Fine Pitches" adds the
+   fine-thread rows a size spans; with it off every size is a lone coarse row. */
+.est-table .est-row-size {
+  vertical-align: middle;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.est-table .est-row-pitch {
+  text-align: right;
+  color: var(--text-dim);
+}
+
+.est-table tbody tr.est-group-start > td {
+  border-top-width: 2px;
 }
 
 /* Smallest size that carries the load, and the estimate the steps land on —
