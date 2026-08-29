@@ -13,16 +13,23 @@ diffing against the current file without touching it):
 
 Source
 ------
-ISO 898-1:2013(E), Tables 4-7, transcribed into
-"ISO Standards - ISO 898-1.xlsx": one worksheet per (load type, thread
-series) pair.
+ISO 898-1:2013(E), Tables 3-7, transcribed into
+"ISO Standards - ISO 898-1.xlsx": one worksheet per table.
 
+    Table 3  mechanical and physical properties per property class
     Table 4  minimum ultimate tensile loads, coarse pitch
     Table 5  proof loads,                    coarse pitch
     Table 6  minimum ultimate tensile loads, fine pitch
     Table 7  proof loads,                    fine pitch
 
-All four sheets are laid out identically:
+Tables 4-7 all share one layout (see below) and feed `boltStrengthThreads`.
+Table 3 has its own layout (one row per mechanical property, property
+classes across the columns, 8.8 split into d <= 16 mm and d > 16 mm) and
+feeds the per-class `properties` map on `boltStrengthGrades` plus the
+`boltStrengthGradeProperties` descriptor list. Only the nominal Rm, Sp and
+Rp0.2 rows are pulled from it.
+
+The four load-table sheets (4-7) are laid out identically:
 
     A1  "Table <n> - <load type>"
     A2  thread series ("ISO metric coarse pitch thread")
@@ -47,7 +54,9 @@ Design notes
 ------------
 - UNITS: the source tables are already metric (N, mm^2), so unlike the NASA
   generator nothing is converted -- every number is the source value, parsed
-  as a float and printed back with no rounding or padding.
+  as a float and printed back with no rounding or padding. The one derived
+  number is `d0` on each thread: the diameter of the circle whose area is the
+  tabulated stress area, d0 = sqrt(4 As / pi), rounded to 3 decimal places.
 - SHAPE: one flat `boltStrengthThreads` array holding both thread series,
   sorted by diameter ascending then pitch descending, with a `series` key on
   each row. bolt-strength-app.js filters on that key, so the sort order
@@ -64,6 +73,7 @@ Design notes
   12.9 column is headed "12.9/12.9" in the source; it keeps "12.9" as its
   key and label with the source header preserved as `designation`.
 """
+import math
 import re
 import sys
 import zipfile
@@ -103,6 +113,55 @@ DEFAULT_SERIES = {"coarse"}
 GRADE_KEYS = {"12.9/12.9": "12.9"}
 
 EM_DASH = "—"
+
+# Table 3 -------------------------------------------------------------------
+#
+# Table 3 is laid out the other way up from Tables 4-7: one row per
+# mechanical/physical property (some spanning two rows for a nom./min. pair),
+# the ten property-class columns across D:M, and property class 8.8 split
+# into a "d <= 16 mm" and a "d > 16 mm" column that carry different numbers
+# for some properties. Only three rows are pulled, all on the "nom." basis:
+#
+#   Tensile strength, Rm
+#   Stress under proof load, Sp
+#   Stress at 0,2 % non-proportional elongation, Rp0.2
+#
+# They land as a `properties` map on each `boltStrengthGrades` entry, keyed
+# by the keys below; `boltStrengthGradeProperties` carries their label,
+# symbol, unit and Table 3 footnote. A class where the standard prints an em
+# dash for a property (Rp0.2 below 8.8) simply omits that key.
+TABLE3_SHEET = "Table 3"
+TABLE3_GRADE_COLUMNS = "DEFGHIJKLM"
+
+# One entry per Table 3 row that becomes a grade property, in display order.
+# `match` is a substring of the (whitespace-collapsed, lower-cased) property
+# name in column B, chosen to be unambiguous against the other rows -- note
+# "non-proportional elongation" alone also matches the Rpf row.
+TABLE3_PROPERTIES = [
+    {
+        "key": "tensileStrength",
+        "match": "tensile strength, rm,",
+        "label": "Tensile strength",
+        "symbol": "Rm",
+        "unit": "MPa",
+    },
+    {
+        "key": "stressUnderProofLoad",
+        "match": "stress under proof load, sp,",
+        "label": "Stress under proof load",
+        "symbol": "Sp",
+        "unit": "MPa",
+    },
+    {
+        "key": "nonProportionalElongationStress",
+        "match": "non-proportional elongation, rp0.2,",
+        "label": "Stress at 0,2 % non-proportional elongation",
+        "symbol": "Rp0,2",
+        "unit": "MPa",
+    },
+]
+
+TABLE3_PROPERTY_ORDER = [p["key"] for p in TABLE3_PROPERTIES]
 
 
 # ---------------------------------------------------------------------------
@@ -255,6 +314,129 @@ def read_notes(cells, after_row):
     return notes
 
 
+TABLE3_HEADER_RE = re.compile(
+    r"^(?P<cls>[\d./]+)(?:\s*\(\s*(?P<variant>[^)]+?)\s*\))?$"
+)
+TABLE3_NOTE_RE = re.compile(r"^(?P<letter>[a-z])\s+(?P<text>.+)$", re.DOTALL)
+
+
+def _collapse(text):
+    return re.sub(r"\s+", " ", (text or "")).strip()
+
+
+def parse_table3(cells, grade_keys):
+    """Reads the "Table 3" worksheet into a
+    ({grade_key: {property_key: number | {variant: number}}}, [descriptor])
+    pair: the per-class `properties` maps and the property descriptor list.
+
+    Only the rows named in TABLE3_PROPERTIES are read, and only their "nom."
+    basis. Property class 8.8 spans two columns (d <= 16 mm / d > 16 mm); a
+    property whose two columns agree collapses to a single number, one whose
+    columns differ (Sp, and the min. rows this script doesn't read) stays a
+    map keyed by the column's parenthesised variant label. An em-dash column
+    means the class doesn't have that property and the key is left out."""
+    if not _collapse(cells.get("A1")).startswith("Table 3"):
+        raise SystemExit(f"Table 3: unexpected title {cells.get('A1')!r}")
+    if _collapse(cells.get("C5")) != "Basis":
+        raise SystemExit(f"Table 3: expected 'Basis' in C5, got {cells.get('C5')!r}")
+    if _collapse(cells.get("D5")) != "Property class":
+        raise SystemExit(
+            f"Table 3: expected 'Property class' in D5, got {cells.get('D5')!r}"
+        )
+
+    # Column -> (grade key, variant label or None) from the class header row.
+    columns = []
+    seen_keys = []
+    for col in TABLE3_GRADE_COLUMNS:
+        header = _collapse(cells.get(f"{col}6"))
+        match = TABLE3_HEADER_RE.match(header)
+        if match is None:
+            raise SystemExit(f"Table 3: unparseable class header {header!r} in {col}6")
+        key = GRADE_KEYS.get(match.group("cls"), match.group("cls"))
+        columns.append((col, key, match.group("variant")))
+        if key not in seen_keys:
+            seen_keys.append(key)
+    if seen_keys != list(grade_keys):
+        raise SystemExit(
+            f"Table 3: property classes {seen_keys} don't match Tables 4-7 "
+            f"{list(grade_keys)}"
+        )
+
+    last_row = max(int(r[1:]) for r in cells if r[1:].isdigit())
+    notes = {}
+    for row_num in range(1, last_row + 1):
+        if _collapse(cells.get(f"A{row_num}")) == "Notes":
+            for note_row in range(row_num + 1, last_row + 1):
+                match = TABLE3_NOTE_RE.match((cells.get(f"A{note_row}") or "").strip())
+                if match:
+                    notes[match.group("letter")] = _collapse(match.group("text"))
+            break
+
+    properties_by_grade = {key: {} for key in grade_keys}
+    descriptors = []
+    for spec in TABLE3_PROPERTIES:
+        name_row = None
+        for row_num in range(7, last_row + 1):
+            if spec["match"] in _collapse(cells.get(f"B{row_num}")).lower():
+                name_row = row_num
+                break
+        if name_row is None:
+            raise SystemExit(f"Table 3: no row matching {spec['match']!r}")
+
+        nom_row = next(
+            (
+                r
+                for r in (name_row, name_row + 1, name_row + 2)
+                if _collapse(cells.get(f"C{r}")).rstrip(".") == "nom"
+            ),
+            None,
+        )
+        if nom_row is None:
+            raise SystemExit(f"Table 3: no 'nom.' basis for {spec['match']!r}")
+
+        # Gather the raw cells per grade key, preserving column order so the
+        # 8.8 variant map reads d <= 16 mm then d > 16 mm.
+        raw = {}
+        for col, key, variant in columns:
+            raw.setdefault(key, []).append((variant, _collapse(cells.get(f"{col}{nom_row}"))))
+
+        for key, entries in raw.items():
+            parsed = {
+                variant: float(text)
+                for variant, text in entries
+                if text not in ("", EM_DASH)
+            }
+            if not parsed:
+                continue
+            if len(entries) == 1:
+                properties_by_grade[key][spec["key"]] = next(iter(parsed.values()))
+            elif len(set(parsed.values())) == 1 and len(parsed) == len(entries):
+                properties_by_grade[key][spec["key"]] = next(iter(parsed.values()))
+            else:
+                properties_by_grade[key][spec["key"]] = parsed
+
+        note_letter = _collapse(cells.get(f"N{name_row}")) or _collapse(
+            cells.get(f"N{nom_row}")
+        )
+        descriptor = {
+            "key": spec["key"],
+            "label": spec["label"],
+            "symbol": spec["symbol"],
+            "unit": spec["unit"],
+            "basis": "nom.",
+        }
+        if note_letter:
+            if note_letter not in notes:
+                raise SystemExit(
+                    f"Table 3: {spec['match']!r} cites note {note_letter!r} "
+                    "but no such footnote is defined"
+                )
+            descriptor["note"] = notes[note_letter]
+        descriptors.append(descriptor)
+
+    return properties_by_grade, descriptors
+
+
 def series_key(sheet_name):
     return SHEETS[sheet_name][1]
 
@@ -264,9 +446,13 @@ def load_key(sheet_name):
 
 
 def build_tables():
-    """Returns (series, load_types, grades, threads, notes)."""
+    """Returns (series, load_types, grades, threads, notes, grade_properties)."""
     sheets = {}
+    table3_cells = None
     for name, cells in read_sheets(WORKBOOK):
+        if name == TABLE3_SHEET:
+            table3_cells = cells
+            continue
         if name not in SHEETS:
             raise SystemExit(f"Unexpected worksheet {name!r} in {WORKBOOK.name}")
         sheets[name] = parse_sheet(name, cells)
@@ -274,6 +460,8 @@ def build_tables():
     missing = set(SHEETS) - set(sheets)
     if missing:
         raise SystemExit(f"Workbook is missing worksheet(s): {sorted(missing)}")
+    if table3_cells is None:
+        raise SystemExit(f"Workbook is missing the {TABLE3_SHEET!r} worksheet")
 
     # Every sheet must carry the same nine property classes in the same order,
     # otherwise the columns can't be shared across load types and series.
@@ -296,6 +484,14 @@ def build_tables():
     unknown = DEFAULT_GRADES - {g["key"] for g in grades}
     if unknown:
         raise SystemExit(f"DEFAULT_GRADES names classes not in the workbook: {sorted(unknown)}")
+
+    # Table 3: nominal Rm / Sp / Rp0.2 per property class, hung on each grade
+    # as a `properties` map, plus the descriptor list they're read against.
+    properties_by_grade, grade_properties = parse_table3(
+        table3_cells, [g["key"] for g in grades]
+    )
+    for grade in grades:
+        grade["properties"] = properties_by_grade.get(grade["key"], {})
 
     series = []
     for key in ("coarse", "fine"):
@@ -340,6 +536,12 @@ def build_tables():
                     "pitch": float(match.group("pitch")),
                     "series": series_key(name),
                     "stressArea": row["stressArea"],
+                    # d0 is the diameter of the circle whose area is the stress
+                    # area: As = pi/4 * d0^2, so d0 = sqrt(4 As / pi). ISO
+                    # 898-1 defines As from the mean of the pitch and minor
+                    # diameters; this recovers that equivalent diameter from
+                    # the tabulated As so the app doesn't have to.
+                    "d0": 2.0 * math.sqrt(row["stressArea"] / math.pi),
                     "loads": {},
                 },
             )
@@ -380,7 +582,7 @@ def build_tables():
             f"(reworded or removed?): {sorted(unmatched)}"
         )
 
-    return series, load_types, grades, ordered, notes
+    return series, load_types, grades, ordered, notes, grade_properties
 
 
 # ---------------------------------------------------------------------------
@@ -431,6 +633,26 @@ def render_load_types_block(load_types):
     return "\n".join(lines)
 
 
+def render_grade_property_value(value):
+    """A grade property is a plain number, or a map keyed by the 8.8 diameter
+    variant where the two columns disagree."""
+    if isinstance(value, dict):
+        inner = ", ".join(f"{js_str(k)}: {js_num(v)}" for k, v in value.items())
+        return "{ " + inner + " }"
+    return js_num(value)
+
+
+def render_grade_properties(properties):
+    if not properties:
+        return "{}"
+    pairs = ", ".join(
+        f"{key}: {render_grade_property_value(properties[key])}"
+        for key in TABLE3_PROPERTY_ORDER
+        if key in properties
+    )
+    return "{ " + pairs + " }"
+
+
 def render_grades_block(grades):
     lines = ["const boltStrengthGrades = ["]
     for g in grades:
@@ -442,10 +664,28 @@ def render_grades_block(grades):
                     f'label: {js_str(g["label"])}',
                     f'designation: {js_str(g["designation"])}',
                     f'shownByDefault: {js_bool(g["shownByDefault"])}',
+                    f'properties: {render_grade_properties(g["properties"])}',
                 ]
             )
             + " },"
         )
+    lines.append("];")
+    return "\n".join(lines)
+
+
+def render_grade_properties_block(grade_properties):
+    lines = ["const boltStrengthGradeProperties = ["]
+    for p in grade_properties:
+        parts = [
+            f'key: {js_str(p["key"])}',
+            f'label: {js_str(p["label"])}',
+            f'symbol: {js_str(p["symbol"])}',
+            f'unit: {js_str(p["unit"])}',
+            f'basis: {js_str(p["basis"])}',
+        ]
+        if p.get("note"):
+            parts.append(f'note: {js_str(p["note"])}')
+        lines.append("  { " + ", ".join(parts) + " },")
     lines.append("];")
     return "\n".join(lines)
 
@@ -465,6 +705,7 @@ def render_threads_block(threads, load_types, grades):
                     f'pitch: {js_num(t["pitch"])}',
                     f'series: {js_str(t["series"])}',
                     f'stressArea: {js_num(t["stressArea"])}',
+                    f'd0: {js_num(round(t["d0"], 3))}',
                 ]
             )
             + ","
@@ -505,6 +746,10 @@ BLOCKS = (
     ("boltStrengthSeries", re.compile(r"const boltStrengthSeries = \[.*?\n\];", re.DOTALL)),
     ("boltStrengthLoadTypes", re.compile(r"const boltStrengthLoadTypes = \[.*?\n\];", re.DOTALL)),
     ("boltStrengthGrades", re.compile(r"const boltStrengthGrades = \[.*?\n\];", re.DOTALL)),
+    (
+        "boltStrengthGradeProperties",
+        re.compile(r"const boltStrengthGradeProperties = \[.*?\n\];", re.DOTALL),
+    ),
     ("boltStrengthThreads", re.compile(r"const boltStrengthThreads = \[.*?\n\];", re.DOTALL)),
     ("boltStrengthNotes", re.compile(r"const boltStrengthNotes = \{.*?\n\};", re.DOTALL)),
 )
@@ -513,16 +758,23 @@ BLOCKS = (
 def main():
     check_only = "--check" in sys.argv[1:]
 
-    series, load_types, grades, threads, notes = build_tables()
+    series, load_types, grades, threads, notes, grade_properties = build_tables()
     rendered = {
         "boltStrengthSeries": render_series_block(series),
         "boltStrengthLoadTypes": render_load_types_block(load_types),
         "boltStrengthGrades": render_grades_block(grades),
+        "boltStrengthGradeProperties": render_grade_properties_block(grade_properties),
         "boltStrengthThreads": render_threads_block(threads, load_types, grades),
         "boltStrengthNotes": render_notes_block(notes, load_types),
     }
 
     if check_only:
+        # The generated blocks carry non-Latin-1 characters (em dash, "≤"),
+        # so force the console to UTF-8 rather than let a cp1252 stdout choke.
+        try:
+            sys.stdout.reconfigure(encoding="utf-8")
+        except (AttributeError, ValueError):
+            pass
         for name, _ in BLOCKS:
             print(rendered[name])
             print()
@@ -543,7 +795,8 @@ def main():
     coarse = sum(1 for t in threads if t["series"] == "coarse")
     print(
         f"Wrote {len(threads)} threads ({coarse} coarse, {len(threads) - coarse} fine) "
-        f"/ {len(grades)} property classes / {len(load_types)} load types to {DATA_JS}"
+        f"/ {len(grades)} property classes ({len(grade_properties)} Table 3 properties each) "
+        f"/ {len(load_types)} load types to {DATA_JS}"
     )
 
 
