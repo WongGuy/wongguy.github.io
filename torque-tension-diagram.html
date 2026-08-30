@@ -30,7 +30,7 @@
       <div class="chart-card-header">
         <h2>Torque Tension Diagram</h2>
         <div class="chart-card-subheader">
-          <h3>Uses the R<sub>p0,2</sub> value in ISO 898-1 to generate a chart of maximum and minimum preload similar to VDI guideline 2230. Input the minimum possible coefficient of friction μ, select your bolt yield utilization ν, and use a torque correction factor α to determine the minimum preload.</h3>
+          <h3>Uses the R<sub>p0,2</sub> value in ISO 898-1 to generate a chart of maximum and minimum preload similar to VDI guideline 2230. Input the minimum possible coefficient of friction μ<sub>min</sub>, select your bolt yield utilization ν, and use either a torque correction factor α or a maximum coefficient of friction μ<sub>max</sub> to determine the minimum preload.</h3>
         </div>
       </div>
       <div class="chart-layout">
@@ -59,13 +59,13 @@
           </div>
           <div class="slider-block mu-slider-block">
             <div class="param-readout">
-              <span class="param-readout-symbol" aria-hidden="true">μ</span>
+              <span class="param-readout-symbol" aria-hidden="true">μ<sub>min</sub></span>
               <input
                 type="text"
                 inputmode="decimal"
                 id="mu-field"
                 class="param-readout-input"
-                aria-label="Friction coefficient μ"
+                aria-label="Minimum friction coefficient μ_min"
               />
             </div>
             <div class="slider-track-wrap">
@@ -77,11 +77,46 @@
                 max="0.3"
                 step="0.005"
                 value="0.12"
-                aria-label="Select friction coefficient μ"
+                aria-label="Select minimum friction coefficient μ_min"
               />
               <div class="slider-endpoints">
                 <span id="mu-min-label"></span>
                 <span id="mu-max-label"></span>
+              </div>
+            </div>
+          </div>
+          <div class="slider-block mu-mode-block">
+            <span class="param-readout" aria-hidden="true"></span>
+            <label class="mu-mode-toggle">
+              <input type="checkbox" id="mumax-toggle" />
+              <span>Use μ<sub>max</sub> instead of α</span>
+            </label>
+          </div>
+          <div class="slider-block mu-max-slider-block" hidden>
+            <div class="param-readout">
+              <span class="param-readout-symbol" aria-hidden="true">μ<sub>max</sub></span>
+              <input
+                type="text"
+                inputmode="decimal"
+                id="mumax-field"
+                class="param-readout-input"
+                aria-label="Maximum friction coefficient μ_max"
+              />
+            </div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="mumax-slider"
+                class="size-slider"
+                min="0.04"
+                max="0.3"
+                step="0.005"
+                value="0.18"
+                aria-label="Select maximum friction coefficient μ_max"
+              />
+              <div class="slider-endpoints">
+                <span id="mumax-lo-label"></span>
+                <span id="mumax-hi-label"></span>
               </div>
             </div>
           </div>

@@ -726,12 +726,39 @@ a.fc-result .fc-result-label {
 }
 
 /* The friction and utilization sliders stack below the size slider in the same
-   sticky block; each readout carries a symbol plus a value ("μ 0.12", "ν 0.90")
-   so it needs a little more room than a bare size label, and the rows don't
-   need the size slider's top margin. */
+   sticky block; each readout carries a symbol plus a value ("μ_min 0.12",
+   "ν 0.90") so it needs a little more room than a bare size label, and the rows
+   don't need the size slider's top margin. The μ_max row only shows in the
+   "use μ_max instead of α" mode. */
 .mu-slider-block,
+.mu-max-slider-block,
 .nu-slider-block {
   margin-top: 0.5rem;
+}
+
+/* .slider-block's display:flex outranks the UA [hidden] rule, so hiding the
+   μ_max block when the page is in α mode needs an explicit override. */
+.mu-max-slider-block[hidden] {
+  display: none;
+}
+
+/* The "use μ_max instead of α" checkbox sits directly under the μ_min slider,
+   in the sticky block, tying the two together. The leading empty .param-readout
+   is a spacer so the label lines up under the slider track rather than the
+   readout column. */
+.mu-mode-block {
+  margin-top: 0.35rem;
+}
+
+.mu-mode-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
 }
 
 /* The tightening-factor (α) slider isn't in the sticky block — it sits between
@@ -749,15 +776,16 @@ a.fc-result .fc-result-label {
   display: none;
 }
 
-/* The μ, ν and α readouts are editable — a small dim symbol beside a text
-   field that takes a value directly — deliberately not the size readout's
-   large bold accent type, since these are secondary controls. */
+/* The μ_min, μ_max, ν and α readouts are editable — a small dim symbol beside a
+   text field that takes a value directly — deliberately not the size readout's
+   large bold accent type, since these are secondary controls. Wide enough for
+   the "μ_min" / "μ_max" symbols so every slider track below starts flush. */
 .param-readout {
   flex: 0 0 auto;
   display: flex;
   align-items: baseline;
   gap: 0.3rem;
-  width: 4.25rem;
+  width: 4.75rem;
   margin-top: 0.45rem;
   font-size: 0.85rem;
   font-weight: 400;

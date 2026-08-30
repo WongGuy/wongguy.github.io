@@ -45,8 +45,16 @@ const torqueTensionAssumptions = {
   // marks it on every curve, with a ray from the origin through those marks.
   // It moves in finer steps than the curve is sampled at, and starts here — a
   // typical as-received, lightly-oiled value.
+  //
+  // frictionDefault is μ_min, the low end of the friction band the tightening
+  // torque is set for (so it gives the maximum preload). frictionMaxDefault is
+  // where the μ_max slider starts in the "use μ_max instead of α" mode — the
+  // high end of the same band, used to read off the minimum preload the same
+  // target torque can leave once friction runs high. Both sliders share the
+  // frictionMin..frictionMax range and frictionSliderStep.
   frictionSliderStep: 0.005,
   frictionDefault: 0.12,
+  frictionMaxDefault: 0.18,
 
   // D_Km, the effective diameter the head friction torque acts at, as a
   // multiple of the nominal diameter d. It's really the mean of the head

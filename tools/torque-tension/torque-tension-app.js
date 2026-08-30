@@ -32,22 +32,34 @@
 // the slider so it steps through the R10 series a mechanical designer
 // actually reaches for.
 //
-// State remembered in localStorage between visits: the selected size, the
-// friction coefficient μ, the yield utilization ν, the tightening factor α,
-// which property classes are shown, and whether the α lower-bound lines are
-// shown.
+// State remembered in localStorage between visits: the selected size, μ_min,
+// μ_max, the yield utilization ν, the tightening factor α, which property
+// classes are shown, whether the α lower-bound lines are shown, and whether
+// the minimum-preload lines are built from α or from μ_max.
 //
-// Two sliders sit under the size slider — μ and ν. μ marks one point on every
-// curve; ν redraws the curves at that fraction of yield. A third, α, sits
-// between the plot and the assumptions and adds a lower-bound preload line
-// under each μ mark at that mark's preload ÷ α; it's shown only while the
-// legend's "Show Min Force After α" checkbox is ticked, since that's the only
-// thing it affects.
+// MINIMUM PRELOAD — TWO MODES
 //
-// Each of the three carries an editable number field, not just a readout.
-// Dragging the slider (or the arrow keys / wheel) snaps to its step grid; a
-// value typed into the field is kept exactly, clamped only to the slider's
-// range — so 0.112 stays 0.112 rather than snapping to 0.11.
+// μ_min marks one point on every curve (the maximum preload its target torque
+// reaches, since torque is set for the lowest expected friction). The minimum
+// preload the same torque can leave is found one of two ways, chosen by the
+// "Use μ_max instead of α" checkbox next to the μ_min slider:
+//
+//   • α mode (default): a lower-bound line under each μ_min mark at that
+//     mark's preload ÷ α, where α is the tightening tool's scatter. The α
+//     slider sits between the plot and the assumptions and is shown only while
+//     the legend's "Show Min Force After α" checkbox is ticked.
+//   • μ_max mode: a μ_max slider appears below the μ_min slider, and a second
+//     dashed ray is drawn from the origin at the shallower slope μ_max gives.
+//     Where it passes under each class's μ_min mark (same torque, less
+//     preload) is that class's minimum preload — marked with a dot and a
+//     dropped line to the preload axis. The α slider and its legend checkbox
+//     are hidden in this mode. μ_min and μ_max share a range and can't cross:
+//     raising one past the other drags it along.
+//
+// Every slider carries an editable number field, not just a readout. Dragging
+// the slider (or the arrow keys / wheel) snaps to its step grid; a value typed
+// into the field is kept exactly, clamped only to the slider's range — so
+// 0.112 stays 0.112 rather than snapping to 0.11.
 
 (function () {
   const sliderEl = document.getElementById("size-slider");
@@ -59,6 +71,12 @@
   const muFieldEl = document.getElementById("mu-field");
   const muMinLabelEl = document.getElementById("mu-min-label");
   const muMaxLabelEl = document.getElementById("mu-max-label");
+  const muModeToggleEl = document.getElementById("mumax-toggle");
+  const muMaxSliderEl = document.getElementById("mumax-slider");
+  const muMaxBlockEl = muMaxSliderEl.closest(".slider-block");
+  const muMaxFieldEl = document.getElementById("mumax-field");
+  const muMaxLoLabelEl = document.getElementById("mumax-lo-label");
+  const muMaxHiLabelEl = document.getElementById("mumax-hi-label");
   const nuSliderEl = document.getElementById("nu-slider");
   const nuFieldEl = document.getElementById("nu-field");
   const nuMinLabelEl = document.getElementById("nu-min-label");
@@ -76,6 +94,8 @@
   const SLIDER_STORAGE_KEY = "torqueTensionSizeIndex";
   const GRADES_STORAGE_KEY = "torqueTensionGrades";
   const MU_STORAGE_KEY = "torqueTensionFriction";
+  const MU_MAX_STORAGE_KEY = "torqueTensionFrictionMax";
+  const MU_MODE_STORAGE_KEY = "torqueTensionUseMuMax";
   const NU_STORAGE_KEY = "torqueTensionUtilization";
   const ALPHA_STORAGE_KEY = "torqueTensionTighteningFactor";
   const LOWER_BOUND_STORAGE_KEY = "torqueTensionShowMinForce";
@@ -130,8 +150,17 @@
   muSliderEl.min = String(MU_MIN);
   muSliderEl.max = String(MU_MAX);
   muSliderEl.step = String(MU_STEP);
-  muMinLabelEl.textContent = `μ ${MU_MIN.toFixed(2)}`;
-  muMaxLabelEl.textContent = `μ ${MU_MAX.toFixed(2)}`;
+  muMinLabelEl.innerHTML = `μ<sub>min</sub> ${MU_MIN.toFixed(2)}`;
+  muMaxLabelEl.innerHTML = `μ<sub>min</sub> ${MU_MAX.toFixed(2)}`;
+
+  // --- Maximum-friction (μ_max) slider ---
+  // Shares the μ_min slider's range and step. It only appears in the "use μ_max
+  // instead of α" mode; see the mode notes further down.
+  muMaxSliderEl.min = String(MU_MIN);
+  muMaxSliderEl.max = String(MU_MAX);
+  muMaxSliderEl.step = String(MU_STEP);
+  muMaxLoLabelEl.innerHTML = `μ<sub>max</sub> ${MU_MIN.toFixed(2)}`;
+  muMaxHiLabelEl.innerHTML = `μ<sub>max</sub> ${MU_MAX.toFixed(2)}`;
 
   // --- Utilization (ν) slider range ---
   // ν scales every curve linearly (it's a bare multiplier on the permissible
@@ -158,14 +187,20 @@
   alphaMinLabelEl.textContent = `α ${ALPHA_MIN.toFixed(1)}`;
   alphaMaxLabelEl.textContent = `α ${ALPHA_MAX.toFixed(1)}`;
 
-  const numberFormat = new Intl.NumberFormat("en-US");
+  // Preload is plotted in kilonewtons, shown to 3 significant figures.
+  const N_PER_KN = 1000;
+
+  function sig3(value) {
+    if (!Number.isFinite(value) || value === 0) return "0";
+    return Number(value.toPrecision(3)).toString();
+  }
 
   // --- Formulas ---
   //
   // The two relations printed at the top of the page, in the same form and
   // with the same constants. Lengths are mm and stresses MPa, so preload
-  // comes out in N and the torque in N*mm — divided to N*m at the end, which
-  // is the only unit conversion on the page.
+  // comes out in N and the torque in N*mm — the torque is divided to N*m and
+  // the preload to kN only when it reaches the plot (axis, tooltip, guides).
 
   function bearingDiameter(thread) {
     return torqueTensionAssumptions.bearingDiameterFactor * thread.diameter;
@@ -277,6 +312,12 @@
   let selectedIndex = getStoredIndex();
   const shownGrades = getStoredGrades();
   let selectedMu = getStoredMu();
+  let selectedMuMax = getStored(
+    MU_MAX_STORAGE_KEY,
+    MU_MIN,
+    MU_MAX,
+    torqueTensionAssumptions.frictionMaxDefault
+  );
   let selectedNu = getStored(
     NU_STORAGE_KEY,
     NU_MIN,
@@ -294,6 +335,15 @@
   // ticked; only an explicit "false" left in storage turns them off.
   let showLowerBounds =
     localStorage.getItem(LOWER_BOUND_STORAGE_KEY) !== "false";
+
+  // Which method builds the minimum-preload lines: the tightening factor α
+  // (default) or a maximum friction coefficient μ_max. Only an explicit "true"
+  // in storage starts in μ_max mode.
+  let useMuMax = localStorage.getItem(MU_MODE_STORAGE_KEY) === "true";
+
+  // μ_min and μ_max share a range and can't cross: if a restored pair is
+  // inconsistent, pull μ_max up to μ_min (μ_min is the primary control).
+  if (selectedMuMax < selectedMu) selectedMuMax = selectedMu;
 
   // --- Slider (same construction as the other selectors) ---
 
@@ -379,29 +429,21 @@
   // slider moves (P goes "0.5" -> "3.5", d2 "2.675" -> "37.129"). Left to
   // themselves the flex items would resize and the whole centered row would
   // shuffle sideways on every step. So each value cell is pinned to the pixel
-  // width of the widest value it will ever show — and the leading designation
-  // to its widest — measured once at the current font (recomputed on resize,
-  // since the font size drops at the narrow breakpoint).
+  // width of the widest value it will ever show, measured once at the current
+  // font (recomputed on resize, since the font size drops at the narrow
+  // breakpoint).
   let paramWidths = null;
 
   function computeParamWidths() {
     const valueEl = paramsEl.querySelector(".tt-param-value");
-    const symbolEl = paramsEl.querySelector(".tt-param-symbol");
-    if (!valueEl || !symbolEl) return;
+    if (!valueEl) return;
 
     const vs = getComputedStyle(valueEl);
     const valueFont = `${vs.fontWeight} ${vs.fontSize} ${vs.fontFamily}`;
     const valueSpacing = parseFloat(vs.letterSpacing) || 0;
-    const ss = getComputedStyle(symbolEl);
-    const symbolFont = `${ss.fontWeight} ${ss.fontSize} ${ss.fontFamily}`;
-    const symbolSpacing = parseFloat(ss.letterSpacing) || 0;
 
-    const widths = { designation: 0, values: PARAMETERS.map(() => 0) };
+    const widths = { values: PARAMETERS.map(() => 0) };
     threads.forEach((thread) => {
-      widths.designation = Math.max(
-        widths.designation,
-        measureTextWidth(designation(thread), symbolFont, symbolSpacing)
-      );
       PARAMETERS.forEach((p, i) => {
         widths.values[i] = Math.max(
           widths.values[i],
@@ -415,12 +457,6 @@
 
   function applyParamWidths() {
     if (!paramWidths) return;
-    const symbolEl = paramsEl.querySelector(".tt-param-symbol");
-    if (symbolEl) {
-      symbolEl.style.display = "inline-block";
-      symbolEl.style.textAlign = "center";
-      symbolEl.style.width = `${Math.ceil(paramWidths.designation) + 1}px`;
-    }
     paramsEl.querySelectorAll(".tt-param-value").forEach((el, i) => {
       el.style.display = "inline-block";
       el.style.textAlign = "right";
@@ -430,18 +466,16 @@
 
   function renderParameters() {
     const thread = threads[selectedIndex];
-    paramsEl.innerHTML =
-      `<span class="tt-param"><span class="tt-param-symbol">${designation(thread)}</span></span>` +
-      PARAMETERS.map((p) => {
-        const symbol = p.sub ? `${p.symbol}<sub>${p.sub}</sub>` : p.symbol;
-        return (
-          `<span class="tt-param" title="${p.title}">` +
-          `<span class="tt-param-symbol">${symbol}</span>` +
-          `<span class="tt-param-value">${fmtMm(p.value(thread))}</span>` +
-          `<span class="tt-param-unit">mm</span>` +
-          `</span>`
-        );
-      }).join("");
+    paramsEl.innerHTML = PARAMETERS.map((p) => {
+      const symbol = p.sub ? `${p.symbol}<sub>${p.sub}</sub>` : p.symbol;
+      return (
+        `<span class="tt-param" title="${p.title}">` +
+        `<span class="tt-param-symbol">${symbol}</span>` +
+        `<span class="tt-param-value">${fmtMm(p.value(thread))}</span>` +
+        `<span class="tt-param-unit">mm</span>` +
+        `</span>`
+      );
+    }).join("");
     if (paramWidths) applyParamWidths();
     else computeParamWidths();
   }
@@ -474,8 +508,9 @@
             const preload = permissiblePreload(thread, rp02, mu, selectedNu);
             const isPick = Math.abs(mu - selectedMu) < 1e-9;
             return {
+              // torque still needs the preload in N; the Y axis is in kN
               x: tighteningTorque(thread, preload, mu),
-              y: preload,
+              y: preload / N_PER_KN,
               mu: mu,
               rp02: rp02,
               // Only the point at the selected μ carries a dot; the rest are
@@ -504,7 +539,7 @@
     if (!far) return null;
     return {
       key: "friction-ray",
-      label: "μ guide",
+      label: "μ_min guide",
       color: "var(--text-dim)",
       dash: "5 4",
       points: [
@@ -514,13 +549,92 @@
     };
   }
 
-  // The lower-bound preload for each drawn class: its preload at the selected
-  // μ divided by the tightening factor α. Same target torque as the μ mark,
-  // but α is how far below that mark the real preload can land once the
-  // scatter of the tightening tool is allowed for. The plot draws each as a
-  // horizontal readout on the preload axis, stopped under the mark it's from.
-  // Nothing unless the "Show Min Force After α" legend checkbox is ticked.
+  // Torque delivered per newton of preload at a given friction, in Nm/N — the
+  // reciprocal of the slope of a constant-friction line in the plot. A target
+  // torque set for μ_min divided by this at μ_max is the preload that same
+  // torque actually reaches once friction runs to μ_max.
+  function torquePerNewton(thread, mu) {
+    return tighteningTorque(thread, 1, mu);
+  }
+
+  // The μ_max counterpart to the μ_min ray: a line from the origin at the
+  // shallower slope μ_max gives, drawn out to the torque of the outermost
+  // μ_min mark. Where it passes under each class's μ_min mark (same torque,
+  // less preload) is that class's minimum preload — the intersections
+  // buildMuMaxIntersections marks and buildLowerBounds drops a line from.
+  function buildMuMaxRay(drawnSeries) {
+    if (!useMuMax) return null;
+    const thread = threads[selectedIndex];
+    const perN = torquePerNewton(thread, selectedMuMax);
+    let far = null;
+    drawnSeries.forEach((s) => {
+      const mark = s.points.find((p) => p.guide);
+      if (mark && (!far || mark.x > far.x)) far = mark;
+    });
+    if (!far) return null;
+    return {
+      key: "mu-max-ray",
+      label: "μ_max guide",
+      color: "var(--text-dim)",
+      dash: "2 3",
+      points: [
+        { x: 0, y: 0, marker: false },
+        { x: far.x, y: far.x / perN / N_PER_KN, marker: false },
+      ],
+    };
+  }
+
+  // A dot on each drawn class's μ_max line, at the torque its μ_min mark uses.
+  // One single-point series per class so the dot takes the class colour; the
+  // legend is supplied explicitly so these add no rows to it.
+  function buildMuMaxIntersections(drawnSeries) {
+    if (!useMuMax) return [];
+    const thread = threads[selectedIndex];
+    const perN = torquePerNewton(thread, selectedMuMax);
+    return drawnSeries
+      .map((s) => {
+        const mark = s.points.find((p) => p.guide);
+        if (!mark) return null;
+        return {
+          key: `${s.key}-mu-max`,
+          label: s.label,
+          color: s.color,
+          points: [
+            {
+              x: mark.x,
+              y: mark.x / perN / N_PER_KN,
+              kind: "mumax",
+              muMax: selectedMuMax,
+              rp02: mark.rp02,
+            },
+          ],
+        };
+      })
+      .filter(Boolean);
+  }
+
+  // The minimum-preload line for each drawn class, drawn as a horizontal
+  // readout on the preload axis stopped under the μ_min mark it belongs to.
+  // Two ways to get there:
+  //   • α mode: the μ_min-mark preload divided by the tightening factor α —
+  //     how far below the mark the real preload can land once the scatter of
+  //     the tightening tool is allowed for. Shown only while the legend's
+  //     "Show Min Force After α" checkbox is ticked.
+  //   • μ_max mode: the preload the μ_min mark's torque actually reaches when
+  //     friction runs to μ_max (the buildMuMaxIntersections dot). Always shown
+  //     in this mode — it's the whole point of it.
   function buildLowerBounds(drawnSeries) {
+    if (useMuMax) {
+      const thread = threads[selectedIndex];
+      const perN = torquePerNewton(thread, selectedMuMax);
+      return drawnSeries
+        .map((s) => {
+          const mark = s.points.find((p) => p.guide);
+          if (!mark) return null;
+          return { y: mark.x / perN / N_PER_KN, xMax: mark.x, color: s.color };
+        })
+        .filter(Boolean);
+    }
     if (!showLowerBounds) return [];
     return drawnSeries
       .map((s) => {
@@ -544,15 +658,19 @@
       active: shownGrades.has(grade.key),
       onToggle: (checked) => setGradeShown(grade.key, checked),
     }));
-    // A checkbox for the per-class α lower-bound lines. The dashed μ ray gets
-    // no row — it's driven by the μ slider, not toggled from here.
-    classItems.push({
-      key: "alpha-lower-bound",
-      label: "Show Min Force After α",
-      color: "var(--text-dim)",
-      active: showLowerBounds,
-      onToggle: (checked) => setShowLowerBounds(checked),
-    });
+    // A checkbox for the per-class α lower-bound lines. The dashed μ rays get
+    // no row — they're driven by the μ sliders, not toggled from here. In
+    // μ_max mode the minimum-preload lines are always drawn, so this row goes
+    // away entirely.
+    if (!useMuMax) {
+      classItems.push({
+        key: "alpha-lower-bound",
+        label: "Show Min Force After α",
+        color: "var(--text-dim)",
+        active: showLowerBounds,
+        onToggle: (checked) => setShowLowerBounds(checked),
+      });
+    }
     return classItems;
   }
 
@@ -567,9 +685,15 @@
   }
 
   // The α slider only affects the lower-bound lines, so it's hidden unless
-  // those are switched on from the legend.
+  // those are switched on from the legend — and always hidden in μ_max mode,
+  // where α isn't used at all.
   function updateAlphaVisibility() {
-    alphaBlockEl.hidden = !showLowerBounds;
+    alphaBlockEl.hidden = useMuMax || !showLowerBounds;
+  }
+
+  // The μ_max slider only exists in μ_max mode.
+  function updateMuMaxVisibility() {
+    muMaxBlockEl.hidden = !useMuMax;
   }
 
   function setShowLowerBounds(shown) {
@@ -579,33 +703,59 @@
     renderPlot();
   }
 
+  function setUseMuMax(on) {
+    useMuMax = on;
+    localStorage.setItem(MU_MODE_STORAGE_KEY, String(on));
+    muModeToggleEl.checked = on;
+    // Entering μ_max mode with a stale μ_max below μ_min: lift it to μ_min.
+    if (on && selectedMuMax < selectedMu) {
+      setMuMax(selectedMu, { snap: false });
+    }
+    updateAlphaVisibility();
+    updateMuMaxVisibility();
+    renderPlot();
+  }
+
   function renderPlot() {
     const thread = threads[selectedIndex];
-    plotTitleEl.textContent = `Assembly Preload vs Tightening Torque — ${designation(thread)}`;
+    plotTitleEl.textContent = `Assembly Preload vs Tightening Torque: ${designation(thread)}`;
 
     const series = buildSeries();
-    const ray = buildFrictionRay(series);
-    // Ray first so the curve lines and their markers draw over it.
-    const plotSeries = ray ? [ray].concat(series) : series;
+    // Rays first so the curve lines and their markers draw over them; the
+    // μ_max intersection dots last so they sit on top of everything.
+    const rays = [buildFrictionRay(series), buildMuMaxRay(series)].filter(Boolean);
+    const plotSeries = rays
+      .concat(series)
+      .concat(buildMuMaxIntersections(series));
 
     renderLinePlot(plotEl, {
       series: plotSeries,
       legendItems: buildLegendItems(),
       yGuides: buildLowerBounds(series),
       xLabel: "Tightening Torque (Nm)",
-      yLabel: "Assembly Preload (N)",
-      formatY: (value) => numberFormat.format(Math.round(value)),
+      yLabel: "Assembly Preload (kN)",
+      formatY: (value) => sig3(value),
       ariaLabel:
         `Yield-limited assembly preload against tightening torque for ` +
         `${designation(thread)}, swept over the friction coefficient, ` +
         `${series.length} property classes`,
-      formatTooltip: (point, s) => [
-        s.label,
-        `μ = ${point.mu.toFixed(2)}`,
-        `Permissible preload: ${numberFormat.format(Math.round(point.y))} N`,
-        `Tightening torque: ${fmtTorque(point.x)} Nm`,
-        `Rp0,2 (min.): ${point.rp02} MPa`,
-      ],
+      formatTooltip: (point, s) => {
+        if (point.kind === "mumax") {
+          return [
+            `${s.label} — min. preload`,
+            `μ<sub>max</sub> = ${point.muMax.toFixed(2)}`,
+            `Minimum preload: ${sig3(point.y)} kN`,
+            `Tightening torque: ${fmtTorque(point.x)} Nm`,
+          ];
+        }
+        return [
+          s.label,
+          `μ<sub>min</sub> = ${point.mu.toFixed(2)}`,
+          `Permissible preload: ${sig3(point.y)} kN`,
+          `Tightening torque: ${fmtTorque(point.x)} Nm`,
+          `Rp0,2 (min.): ${point.rp02} MPa`,
+        ];
+      },
       emptyMessage:
         "No property classes selected. Tick one in the legend to plot it.",
     });
@@ -654,6 +804,29 @@
     muSliderEl.value = String(selectedMu);
     localStorage.setItem(MU_STORAGE_KEY, String(selectedMu));
     if (!silent) muFieldEl.value = fmtField(selectedMu);
+    // μ_max can't fall below μ_min — push it up to match if μ_min overtakes it.
+    if (selectedMuMax < selectedMu) {
+      selectedMuMax = selectedMu;
+      muMaxSliderEl.value = String(selectedMuMax);
+      localStorage.setItem(MU_MAX_STORAGE_KEY, String(selectedMuMax));
+      muMaxFieldEl.value = fmtField(selectedMuMax);
+    }
+    renderPlot();
+  }
+
+  function setMuMax(value, { snap = true, silent = false } = {}) {
+    if (!Number.isFinite(value)) return;
+    selectedMuMax = snap ? snapMu(value) : clampTo(value, MU_MIN, MU_MAX);
+    muMaxSliderEl.value = String(selectedMuMax);
+    localStorage.setItem(MU_MAX_STORAGE_KEY, String(selectedMuMax));
+    if (!silent) muMaxFieldEl.value = fmtField(selectedMuMax);
+    // ...and μ_min can't rise above μ_max — pull it down to match.
+    if (selectedMuMax < selectedMu) {
+      selectedMu = selectedMuMax;
+      muSliderEl.value = String(selectedMu);
+      localStorage.setItem(MU_STORAGE_KEY, String(selectedMu));
+      muFieldEl.value = fmtField(selectedMu);
+    }
     renderPlot();
   }
 
@@ -734,6 +907,23 @@
     { passive: false }
   );
 
+  muMaxSliderEl.addEventListener("input", () => {
+    setMuMax(Number(muMaxSliderEl.value));
+  });
+
+  muMaxSliderEl.addEventListener(
+    "wheel",
+    (evt) => {
+      evt.preventDefault();
+      setMuMax(selectedMuMax + (evt.deltaY > 0 ? -MU_STEP : MU_STEP));
+    },
+    { passive: false }
+  );
+
+  muModeToggleEl.addEventListener("change", () => {
+    setUseMuMax(muModeToggleEl.checked);
+  });
+
   nuSliderEl.addEventListener("input", () => {
     setNu(Number(nuSliderEl.value));
   });
@@ -761,14 +951,18 @@
   );
 
   wireField(muFieldEl, setMu, () => selectedMu);
+  wireField(muMaxFieldEl, setMuMax, () => selectedMuMax);
   wireField(nuFieldEl, setNu, () => selectedNu);
   wireField(alphaFieldEl, setAlpha, () => selectedAlpha);
 
+  muModeToggleEl.checked = useMuMax;
   updateAlphaVisibility();
+  updateMuMaxVisibility();
   // Restore without snapping — a value typed into a field last visit keeps its
   // exact value rather than being pulled back onto the slider's step grid.
   setNu(selectedNu, { snap: false });
   setAlpha(selectedAlpha, { snap: false });
+  setMuMax(selectedMuMax, { snap: false });
   setMu(selectedMu, { snap: false });
   setIndex(selectedIndex);
 })();
