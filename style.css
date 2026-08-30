@@ -742,23 +742,30 @@ a.fc-result .fc-result-label {
   display: none;
 }
 
-/* The "use μ_max instead of α" checkbox sits directly under the μ_min slider,
-   in the sticky block, tying the two together. The leading empty .param-readout
-   is a spacer so the label lines up under the slider track rather than the
-   readout column. */
-.mu-mode-block {
-  margin-top: 0.35rem;
+/* The "use μ_max instead of α" checkbox sits in the subheader, on its own line
+   under the h3, so it reads as a mode switch for the whole tool rather than a
+   control tucked in among the sliders. The row is a full-width flex break; the
+   label itself is only as wide as its content so the click target stays tight. */
+.mu-mode-row {
+  flex: 0 0 100%;
 }
 
 .mu-mode-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  margin-top: 0.15rem;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: var(--text-dim);
   cursor: pointer;
   user-select: none;
+}
+
+.mu-mode-toggle input {
+  width: 1rem;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--accent);
+  cursor: pointer;
 }
 
 /* The tightening-factor (α) slider isn't in the sticky block — it sits between

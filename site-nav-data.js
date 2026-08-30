@@ -27,4 +27,11 @@ const siteNav = [
       { label: "Torque Tension Diagram", href: "torque-tension-diagram.html" },
     ],
   },
+  {
+    label: "Sheet Metal",
+    pages: [
+      { label: "Thicknesses", href: "sheet-metal-thicknesses.html" },
+      { label: "PEMs", href: "sheet-metal-pems.html" },
+    ],
+  },
 ];
