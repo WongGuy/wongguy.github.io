@@ -59,6 +59,24 @@
   box-sizing: border-box;
 }
 
+/* Keep sub/sup from inflating the line box of the text they sit in, so
+   subscript-heavy prose (μ_min, R_p0,2, …) keeps even line spacing. */
+sub,
+sup {
+  font-size: 0.75em;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
@@ -303,6 +321,17 @@ main {
 
 .chart-card-subheader .flowchart-collapse-toggle {
   margin-left: auto;
+}
+
+/* Descriptive prose under the h3: a full-width flex break, matching the h3's
+   dim small type but at normal weight so it reads as body copy, not a heading. */
+.chart-card-subheader p {
+  flex: 0 0 100%;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--text-dim);
 }
 
 .detail-toggle {
@@ -773,6 +802,7 @@ a.fc-result .fc-result-label {
    legend checkbox adds the lines it drives — so it needs its own vertical
    breathing room rather than the tight inter-row spacing above. */
 .alpha-slider-block {
+  flex-wrap: wrap;
   margin-top: 1rem;
   margin-bottom: 1rem;
 }
@@ -781,6 +811,20 @@ a.fc-result .fc-result-label {
    α block when its lines are switched off needs an explicit override. */
 .alpha-slider-block[hidden] {
   display: none;
+}
+
+/* Link to the external tightening-method factor chart, on its own full-width
+   row under the α slider. Lives inside .alpha-slider-block so it only shows
+   while the α slider does. */
+.alpha-slider-note {
+  flex: 0 0 100%;
+  margin: 0.4rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+
+.alpha-slider-note a {
+  color: var(--accent);
 }
 
 /* The μ_min, μ_max, ν and α readouts are editable — a small dim symbol beside a
