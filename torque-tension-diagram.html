@@ -1,0 +1,237 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>WongSize/Torque Tension Diagram</title>
+  <script src="theme.js"></script>
+  <script src="site-nav-data.js"></script>
+  <script src="tab-nav.js"></script>
+  <script src="footer.js"></script>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="theme-toggle-wrap">
+      <label class="theme-switch">
+        <span class="theme-switch-icon" aria-hidden="true">☀</span>
+        <input type="checkbox" id="theme-toggle" aria-label="Toggle dark mode" />
+        <span class="theme-switch-track"><span class="theme-switch-thumb"></span></span>
+        <span class="theme-switch-icon" aria-hidden="true">☾</span>
+      </label>
+    </div>
+    <h1>WongSize</h1>
+  </header>
+
+  <main>
+    <section class="chart-card">
+      <div class="site-nav"></div>
+      <div class="chart-card-header">
+        <h2>Torque Tension Diagram</h2>
+        <div class="chart-card-subheader">
+          <h3>Uses the R<sub>p0,2</sub> value in ISO 898-1 to generate a chart of maximum and minimum preload similar to VDI guideline 2230. Input the minimum possible coefficient of friction μ, select your bolt yield utilization ν, and use a torque correction factor α to determine the minimum preload.</h3>
+        </div>
+      </div>
+      <div class="chart-layout">
+        <hr class="chart-card-rule" />
+
+        <div class="slider-sticky">
+          <div class="slider-block">
+            <div id="size-readout" class="size-readout">M10</div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="size-slider"
+                class="size-slider"
+                min="0"
+                max="19"
+                step="1"
+                value="7"
+                aria-label="Select thread diameter"
+              />
+              <div id="slider-ticks" class="slider-ticks"></div>
+              <div class="slider-endpoints">
+                <span id="slider-min-label"></span>
+                <span id="slider-max-label"></span>
+              </div>
+            </div>
+          </div>
+          <div class="slider-block mu-slider-block">
+            <div class="param-readout">
+              <span class="param-readout-symbol" aria-hidden="true">μ</span>
+              <input
+                type="text"
+                inputmode="decimal"
+                id="mu-field"
+                class="param-readout-input"
+                aria-label="Friction coefficient μ"
+              />
+            </div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="mu-slider"
+                class="size-slider"
+                min="0.04"
+                max="0.3"
+                step="0.005"
+                value="0.12"
+                aria-label="Select friction coefficient μ"
+              />
+              <div class="slider-endpoints">
+                <span id="mu-min-label"></span>
+                <span id="mu-max-label"></span>
+              </div>
+            </div>
+          </div>
+          <div class="slider-block nu-slider-block">
+            <div class="param-readout">
+              <span class="param-readout-symbol" aria-hidden="true">ν</span>
+              <input
+                type="text"
+                inputmode="decimal"
+                id="nu-field"
+                class="param-readout-input"
+                aria-label="Yield utilization ν"
+              />
+            </div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="nu-slider"
+                class="size-slider"
+                min="0.1"
+                max="0.9"
+                step="0.05"
+                value="0.9"
+                aria-label="Select yield utilization ν"
+              />
+              <div class="slider-endpoints">
+                <span id="nu-min-label"></span>
+                <span id="nu-max-label"></span>
+              </div>
+            </div>
+          </div>
+          <div id="thread-params" class="tt-params"></div>
+        </div>
+
+        <div class="spec-group">
+          <h3 class="spec-group-title" id="plot-title">Assembly Preload vs Tightening Torque</h3>
+          <div id="torque-tension-plot" class="plot"></div>
+          <div class="slider-block alpha-slider-block">
+            <div class="param-readout">
+              <span class="param-readout-symbol" aria-hidden="true">α</span>
+              <input
+                type="text"
+                inputmode="decimal"
+                id="alpha-field"
+                class="param-readout-input"
+                aria-label="Tightening factor α"
+              />
+            </div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="alpha-slider"
+                class="size-slider"
+                min="1.1"
+                max="4"
+                step="0.1"
+                value="1.4"
+                aria-label="Select tightening factor α"
+              />
+              <div class="slider-endpoints">
+                <span id="alpha-min-label"></span>
+                <span id="alpha-max-label"></span>
+              </div>
+            </div>
+          </div>
+          <div class="plot-note">
+            <h4>Assumptions</h4>
+            <ul id="assumptions"></ul>
+          </div>
+        </div>
+
+        <div class="spec-group">
+          <h3 class="spec-group-title">Formulas</h3>
+          <div class="tt-formulas">
+            <figure class="tt-formula">
+              <figcaption class="tt-formula-caption">Maximum Permissible Assembly Preload Force</figcaption>
+              <div class="tt-formula-body">
+                <math display="block" class="tt-math">
+                  <msub><mi>F</mi><mrow><mi>M</mi><mi>max</mi></mrow></msub>
+                  <mo>&#x2264;</mo>
+                  <mfrac>
+                    <mrow>
+                      <mi>&#x3BD;</mi><mo>&#xB7;</mo>
+                      <msub><mi>R</mi><mrow><mi>p</mi><mn>0,2</mn></mrow></msub><mo>&#xB7;</mo>
+                      <msubsup class="tt-var"><mi>d</mi><mn>0</mn><mn>3</mn></msubsup>
+                    </mrow>
+                    <msqrt>
+                      <mn>1.62</mn><mo>&#xB7;</mo>
+                      <msubsup class="tt-var"><mi>d</mi><mn>0</mn><mn>2</mn></msubsup>
+                      <mo>+</mo>
+                      <msup>
+                        <mrow>
+                          <mo>(</mo>
+                          <mn>1.06</mn><mo>&#xB7;</mo><mi class="tt-var">P</mi>
+                          <mo>+</mo>
+                          <mn>3.84</mn><mo>&#xB7;</mo>
+                          <msub class="tt-var"><mi>d</mi><mn>2</mn></msub><mo>&#xB7;</mo>
+                          <msub><mi>&#x3BC;</mi><mi>G</mi></msub>
+                          <mo>)</mo>
+                        </mrow>
+                        <mn>2</mn>
+                      </msup>
+                    </msqrt>
+                  </mfrac>
+                  <mo>=</mo>
+                  <msub><mi>F</mi><mrow><mi>M</mi><mi>per</mi></mrow></msub>
+                </math>
+              </div>
+            </figure>
+
+            <figure class="tt-formula">
+              <figcaption class="tt-formula-caption">Tightening Torque</figcaption>
+              <div class="tt-formula-body">
+                <math display="block" class="tt-math">
+                  <msub><mi>M</mi><mi>A</mi></msub>
+                  <mo>=</mo>
+                  <msub><mi>F</mi><mi>M</mi></msub><mo>&#xB7;</mo>
+                  <mrow>
+                    <mo>[</mo>
+                    <mn>0.16</mn><mo>&#xB7;</mo><mi class="tt-var">P</mi>
+                    <mo>+</mo>
+                    <mn>0.58</mn><mo>&#xB7;</mo>
+                    <msub class="tt-var"><mi>d</mi><mn>2</mn></msub><mo>&#xB7;</mo>
+                    <msub><mi>&#x3BC;</mi><mi>G</mi></msub>
+                    <mo>+</mo>
+                    <mfrac>
+                      <msub class="tt-var"><mi>D</mi><mi>Km</mi></msub>
+                      <mn>2</mn>
+                    </mfrac>
+                    <mo>&#xB7;</mo>
+                    <msub><mi>&#x3BC;</mi><mi>K</mi></msub>
+                    <mo>]</mo>
+                  </mrow>
+                </math>
+              </div>
+            </figure>
+          </div>
+          <p class="tt-formula-source">
+            VDI 2230 Part 1.
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer></footer>
+
+  <script src="tools/bolt/bolt-data.js"></script>
+  <script src="tools/torque-tension/torque-tension-data.js"></script>
+  <script src="plot.js"></script>
+  <script src="tools/torque-tension/torque-tension-app.js"></script>
+</body>
+</html>

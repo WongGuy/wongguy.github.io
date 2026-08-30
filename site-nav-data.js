@@ -24,6 +24,7 @@ const siteNav = [
     pages: [
       { label: "NASA Tightening Torque", href: "nasa-tightening-torque.html" },
       { label: "Bolt Size Estimation", href: "bolt-size-estimation.html" },
+      { label: "Torque Tension Diagram", href: "torque-tension-diagram.html" },
     ],
   },
 ];

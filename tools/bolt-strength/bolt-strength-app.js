@@ -1,6 +1,6 @@
 // DOM logic for bolt-size-estimation.html: the force-per-bolt input, the
 // load condition and tightening method pickers, the load table, and the
-// property class column toggles. Reads bolt-strength-data.js — see that file
+// property class column toggles. Reads bolt-data.js — see that file
 // for the schema and for how to regenerate the ISO 898-1 half of it.
 //
 // How the table is marked up:
@@ -9,7 +9,7 @@
 //   load reaches the force per bolt is bolded and filled yellow — that's the
 //   bare minimum before corrections, with no margin at all. The load
 //   condition and the tightening method each add a
-//   number of steps (see boltStrengthLoadCases / boltStrengthTighteningMethods);
+//   number of steps (see boltLoadCases / boltTighteningMethods);
 //   the cell that many rows below the bolded one is the estimate, and is
 //   highlighted. The rows outside that band are trimmed away, leaving one row
 //   of context above the first bolded cell and one below the last estimate.
@@ -42,7 +42,7 @@
 // property class columns are shown, whether the "Show UTS Load" toggle adds the
 // minimum ultimate tensile load as a second value per cell, and whether
 // "Include Fine Pitches" is on. Columns are keyed by the class designations in
-// bolt-strength-data.js.
+// bolt-data.js.
 //
 // The loads the tool works from are 75% of the ISO 898-1 proof loads, not the
 // full proof loads — a common preload ceiling, and the margin this rough
@@ -134,11 +134,11 @@
   function storedGrades() {
     try {
       const stored = JSON.parse(localStorage.getItem(GRADES_STORAGE_KEY));
-      if (!Array.isArray(stored)) return defaultKeys(boltStrengthGrades);
-      const all = boltStrengthGrades.map((g) => g.key);
+      if (!Array.isArray(stored)) return defaultKeys(boltGrades);
+      const all = boltGrades.map((g) => g.key);
       return new Set(stored.filter((key) => all.indexOf(key) !== -1));
     } catch (err) {
-      return defaultKeys(boltStrengthGrades);
+      return defaultKeys(boltGrades);
     }
   }
 
@@ -147,11 +147,11 @@
     return Number.isFinite(stored) && stored > 0 ? stored : null;
   }
 
-  const loadType = firstDefault(boltStrengthLoadTypes);
-  const shownSeries = defaultKeys(boltStrengthSeries);
+  const loadType = firstDefault(boltLoadTypes);
+  const shownSeries = defaultKeys(boltSeries);
   const shownGrades = storedGrades();
-  let loadCase = storedChoice(LOAD_CASE_STORAGE_KEY, boltStrengthLoadCases);
-  let method = storedChoice(METHOD_STORAGE_KEY, boltStrengthTighteningMethods);
+  let loadCase = storedChoice(LOAD_CASE_STORAGE_KEY, boltLoadCases);
+  let method = storedChoice(METHOD_STORAGE_KEY, boltTighteningMethods);
   let force = storedForce();
   let showUts = localStorage.getItem(UTS_STORAGE_KEY) === "1";
   let showFine = localStorage.getItem(FINE_STORAGE_KEY) === "1";
@@ -159,7 +159,7 @@
   // The non-default thread series (today just "fine"). "Include Fine Pitches"
   // adds them to / removes them from the shown-series set; the table build
   // itself still just reads that set.
-  const FINE_SERIES = boltStrengthSeries
+  const FINE_SERIES = boltSeries
     .filter((entry) => !entry.shownByDefault)
     .map((entry) => entry.key);
 
@@ -173,12 +173,12 @@
   // The minimum-ultimate-tensile load type, shown as a second value per cell
   // when "Show UTS Load" is ticked. The estimate itself always tracks proof
   // loads (loadType); this is reference only.
-  const utsType = boltStrengthLoadTypes.find((t) => t.key === "tensile");
+  const utsType = boltLoadTypes.find((t) => t.key === "tensile");
 
   // --- Data access ---
 
   function visibleThreads() {
-    return boltStrengthThreads.filter(
+    return boltThreads.filter(
       (thread) =>
         shownSeries.has(thread.series) &&
         !SECOND_CHOICE_DIAMETERS.has(thread.diameter)
@@ -186,7 +186,7 @@
   }
 
   function visibleGrades() {
-    return boltStrengthGrades.filter((grade) => shownGrades.has(grade.key));
+    return boltGrades.filter((grade) => shownGrades.has(grade.key));
   }
 
   // The tabulated load for one thread in one class, or null where ISO 898-1
@@ -342,7 +342,7 @@
   }
 
   function buildLoadCases() {
-    boltStrengthLoadCases.forEach((entry) => {
+    boltLoadCases.forEach((entry) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "est-case";
@@ -371,7 +371,7 @@
   }
 
   function buildMethods() {
-    boltStrengthTighteningMethods.forEach((entry) => {
+    boltTighteningMethods.forEach((entry) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "est-method";
@@ -393,7 +393,7 @@
   }
 
   function buildGradeToggles() {
-    boltStrengthGrades.forEach((grade) => {
+    boltGrades.forEach((grade) => {
       const label = document.createElement("label");
       label.className = "est-grade-toggle";
       label.dataset.key = grade.key;
@@ -414,7 +414,7 @@
   }
 
   function buildNotes() {
-    const notes = (boltStrengthNotes[loadType.key] || []).slice();
+    const notes = (boltNotes[loadType.key] || []).slice();
     if (loadType.key === "proof") {
       notes.unshift(
         `Loads shown are ${PROOF_LOAD_PERCENT}% of the ISO 898-1 proof load; ` +
@@ -642,7 +642,7 @@
   // --- Controls ---
 
   function setLoadCase(key) {
-    loadCase = boltStrengthLoadCases.find((entry) => entry.key === key) || loadCase;
+    loadCase = boltLoadCases.find((entry) => entry.key === key) || loadCase;
     localStorage.setItem(LOAD_CASE_STORAGE_KEY, loadCase.key);
     syncPickers();
     renderTable();
@@ -650,7 +650,7 @@
 
   function setMethod(key) {
     method =
-      boltStrengthTighteningMethods.find((entry) => entry.key === key) || method;
+      boltTighteningMethods.find((entry) => entry.key === key) || method;
     localStorage.setItem(METHOD_STORAGE_KEY, method.key);
     syncPickers();
     renderTable();
@@ -659,7 +659,7 @@
   function persistGrades() {
     localStorage.setItem(
       GRADES_STORAGE_KEY,
-      JSON.stringify(boltStrengthGrades.map((g) => g.key).filter((k) => shownGrades.has(k)))
+      JSON.stringify(boltGrades.map((g) => g.key).filter((k) => shownGrades.has(k)))
     );
   }
 

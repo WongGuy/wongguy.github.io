@@ -725,6 +725,65 @@ a.fc-result .fc-result-label {
   color: var(--accent);
 }
 
+/* The friction and utilization sliders stack below the size slider in the same
+   sticky block; each readout carries a symbol plus a value ("μ 0.12", "ν 0.90")
+   so it needs a little more room than a bare size label, and the rows don't
+   need the size slider's top margin. */
+.mu-slider-block,
+.nu-slider-block {
+  margin-top: 0.5rem;
+}
+
+/* The tightening-factor (α) slider isn't in the sticky block — it sits between
+   the chart and the assumptions, shown only when the "Show Min Force After α"
+   legend checkbox adds the lines it drives — so it needs its own vertical
+   breathing room rather than the tight inter-row spacing above. */
+.alpha-slider-block {
+  margin-top: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* .slider-block's display:flex outranks the UA [hidden] rule, so hiding the
+   α block when its lines are switched off needs an explicit override. */
+.alpha-slider-block[hidden] {
+  display: none;
+}
+
+/* The μ, ν and α readouts are editable — a small dim symbol beside a text
+   field that takes a value directly — deliberately not the size readout's
+   large bold accent type, since these are secondary controls. */
+.param-readout {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  width: 4.25rem;
+  margin-top: 0.45rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+.param-readout-symbol {
+  flex: 0 0 auto;
+}
+
+.param-readout-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0.1rem 0.25rem;
+  border: 1px solid var(--panel-border);
+  background: var(--panel);
+  color: var(--text);
+  font: inherit;
+  border-radius: 0;
+}
+
+.param-readout-input:focus-visible {
+  outline: 1px solid var(--accent);
+  outline-offset: 1px;
+}
+
 .slider-track-wrap {
   position: relative;
   flex: 1 1 auto;
@@ -818,6 +877,14 @@ a.fc-result .fc-result-label {
   color: var(--text-dim);
 }
 
+/* The thumb is 34px tall on a 6px input, so it overhangs the input box by
+   ~14px. The size slider's tick row absorbs that overhang before its endpoint
+   labels; the μ/ν/α sliders have no tick row, so without extra room here the
+   thumb clips their end labels when it sits near the track ends. */
+.size-slider + .slider-endpoints {
+  margin-top: 1rem;
+}
+
 /* --- Plot (see plot.js for the renderer this styles) --- */
 
 .plot {
@@ -870,6 +937,25 @@ a.fc-result .fc-result-label {
 .plot-marker {
   stroke: var(--panel);
   stroke-width: 1;
+}
+
+/* Lines dropped from a guide point to each axis, and the coordinate readouts
+   printed where they land. Both take the series color inline (see plot.js);
+   the label gets a panel-colored halo so it stays readable over the gridlines
+   and the regular tick labels it overlaps. */
+.plot-guide-line {
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.75;
+}
+
+.plot-guide-label text {
+  font-size: 0.7rem;
+  font-weight: 700;
+  paint-order: stroke;
+  stroke: var(--panel);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 .plot-marker.is-active {
@@ -1721,6 +1807,108 @@ a.fc-result .fc-result-label {
   }
 
   .est-legend-cell {
+    font-size: 0.78rem;
+  }
+}
+
+/* --- Torque tension diagram --- */
+
+.tt-formulas {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.tt-formula {
+  margin: 0;
+  border: 1px solid var(--panel-border);
+}
+
+.tt-formula-caption {
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--panel-border);
+  background: var(--accent-dim);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+/* The formulas are wide, and MathML won't wrap: let the box scroll sideways
+   on a narrow screen rather than push the card out with it. */
+.tt-formula-body {
+  padding: 0.9rem 0.6rem;
+  overflow-x: auto;
+  text-align: center;
+}
+
+/* `block math`, not plain `block`: `block` is shorthand for `block flow`,
+   which swaps the element's inner display type away from `math` and makes
+   Chromium lay the top-level operands out as stacked block boxes instead of
+   a single row. `block math` keeps the math layout while still making the
+   element a block-level box — so fit-content + auto margins can centre it
+   (the parent's text-align can't, a block box ignores it), and an
+   over-wide formula sits flush left and scrolls via the overflow above. */
+.tt-math {
+  display: block math;
+  width: fit-content;
+  margin: 0 auto;
+  font-size: 1.15rem;
+  color: var(--text);
+}
+
+/* Every symbol the size slider drives, marked the same way in the formulas
+   and in the readout under the slider so the two read as one set of values. */
+.tt-var {
+  color: var(--accent);
+}
+
+.tt-formula-source {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.5;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+/* Sits inside .slider-sticky, under the slider, so the values stay on screen
+   while the chart below is being read. Kept to one wrapping row for that
+   reason — anything taller and the sticky header starts eating the chart. */
+.tt-params {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.2rem 1.1rem;
+  max-width: 34rem;
+  margin: 0.5rem auto 0;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.tt-param {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.3rem;
+  white-space: nowrap;
+}
+
+.tt-param-symbol {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.tt-param-unit {
+  font-size: 0.85em;
+  color: var(--text-dim);
+}
+
+@media (max-width: 600px) {
+  .tt-math {
+    font-size: 1rem;
+  }
+
+  .tt-params {
+    gap: 0.15rem 0.75rem;
     font-size: 0.78rem;
   }
 }

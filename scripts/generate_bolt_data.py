@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
-"""Regenerates the generated blocks in bolt-strength-data.js from the ISO 898-1
-workbook checked into assets/standards/ISO/screw/.
+"""Regenerates the generated blocks in bolt-data.js from the ISO 898-1 and
+ISO 724 workbooks checked into assets/standards/ISO/screw/.
 
-Run with no arguments to rewrite bolt-strength-data.js in place:
+Run with no arguments to rewrite bolt-data.js in place:
 
-    python scripts/generate_bolt_strength_data.py
+    python scripts/generate_bolt_data.py
 
 Run with --check to print the generated blocks to stdout instead (useful for
 diffing against the current file without touching it):
 
-    python scripts/generate_bolt_strength_data.py --check
+    python scripts/generate_bolt_data.py --check
 
 Source
 ------
@@ -22,12 +22,12 @@ ISO 898-1:2013(E), Tables 3-7, transcribed into
     Table 6  minimum ultimate tensile loads, fine pitch
     Table 7  proof loads,                    fine pitch
 
-Tables 4-7 all share one layout (see below) and feed `boltStrengthThreads`.
+Tables 4-7 all share one layout (see below) and feed `boltThreads`.
 Table 3 has its own layout (one row per mechanical property, property
 classes across the columns, 8.8 split into d <= 16 mm and d > 16 mm) and
-feeds the per-class `properties` map on `boltStrengthGrades` plus the
-`boltStrengthGradeProperties` descriptor list. Only the nominal Rm, Sp and
-Rp0.2 rows are pulled from it.
+feeds the per-class `properties` map on `boltGrades` plus the
+`boltGradeProperties` descriptor list. Only the nominal Rm and Sp rows and
+the minimum Rp0.2 row are pulled from it.
 
 The four load-table sheets (4-7) are laid out identically:
 
@@ -47,6 +47,11 @@ The four load-table sheets (4-7) are laid out identically:
 An em dash in a load cell means that class isn't offered at that size (9.8
 stops at M16).
 
+The second workbook, "ISO Standards - ISO 724.xlsx", holds ISO 724:2023
+Table 1 (basic dimensions) on its one worksheet, and supplies the pitch
+diameter d2 -- which ISO 898-1 doesn't tabulate and which can't be recovered
+from the stress area. See the ISO 724 block below for its layout.
+
 The xlsx is read with zipfile + ElementTree rather than openpyxl/pandas, so
 this script has no third-party dependencies, matching the other generators.
 
@@ -57,7 +62,8 @@ Design notes
   as a float and printed back with no rounding or padding. The one derived
   number is `d0` on each thread: the diameter of the circle whose area is the
   tabulated stress area, d0 = sqrt(4 As / pi), rounded to 3 decimal places.
-- SHAPE: one flat `boltStrengthThreads` array holding both thread series,
+  d2 is likewise the published ISO 724 value, unconverted.
+- SHAPE: one flat `boltThreads` array holding both thread series,
   sorted by diameter ascending then pitch descending, with a `series` key on
   each row. bolt-strength-app.js filters on that key, so the sort order
   survives filtering -- and showing both series at once (the fine-thread
@@ -84,9 +90,15 @@ ROOT = Path(__file__).resolve().parent.parent
 WORKBOOK = (
     ROOT / "assets" / "standards" / "ISO" / "screw" / "ISO Standards - ISO 898-1.xlsx"
 )
-DATA_JS = ROOT / "tools" / "bolt-strength" / "bolt-strength-data.js"
+THREAD_WORKBOOK = (
+    ROOT / "assets" / "standards" / "ISO" / "screw" / "ISO Standards - ISO 724.xlsx"
+)
+DATA_JS = ROOT / "tools" / "bolt" / "bolt-data.js"
 
-NS = {"m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main"}
+NS = {
+    "m": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+    "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+}
 
 # Which worksheet holds which (load type, thread series) pair. Load type keys
 # are the first level of each thread's `loads` map; series keys are the value
@@ -120,23 +132,32 @@ EM_DASH = "—"
 # mechanical/physical property (some spanning two rows for a nom./min. pair),
 # the ten property-class columns across D:M, and property class 8.8 split
 # into a "d <= 16 mm" and a "d > 16 mm" column that carry different numbers
-# for some properties. Only three rows are pulled, all on the "nom." basis:
+# for some properties. Only three rows are pulled, each on the basis named in
+# its spec below -- Rm and Sp on "nom.", Rp0.2 on "min.":
 #
-#   Tensile strength, Rm
-#   Stress under proof load, Sp
-#   Stress at 0,2 % non-proportional elongation, Rp0.2
+#   Tensile strength, Rm                                    nom.
+#   Stress under proof load, Sp                             nom.
+#   Stress at 0,2 % non-proportional elongation, Rp0.2      min.
 #
-# They land as a `properties` map on each `boltStrengthGrades` entry, keyed
-# by the keys below; `boltStrengthGradeProperties` carries their label,
-# symbol, unit and Table 3 footnote. A class where the standard prints an em
-# dash for a property (Rp0.2 below 8.8) simply omits that key.
+# They land as a `properties` map on each `boltGrades` entry, keyed
+# by the keys below; `boltGradeProperties` carries their label,
+# symbol, unit, basis and Table 3 footnote. A class where the standard prints
+# an em dash for a property (Rp0.2 below 8.8) simply omits that key.
+#
+# Rp0.2 is read on the "min." basis because that -- not the nominal, which
+# ISO 898-1 states is "given only for the purpose of the property-class
+# designation system" -- is the yield stress VDI 2230 tightening tables and
+# the torque-tension diagram are built on. On the min. basis class 8.8 splits
+# by diameter (640 MPa at d <= 16 mm, 660 MPa above), so its value is a
+# { "d <= 16 mm": ..., "d > 16 mm": ... } map like Sp,nom.
 TABLE3_SHEET = "Table 3"
 TABLE3_GRADE_COLUMNS = "DEFGHIJKLM"
 
 # One entry per Table 3 row that becomes a grade property, in display order.
 # `match` is a substring of the (whitespace-collapsed, lower-cased) property
 # name in column B, chosen to be unambiguous against the other rows -- note
-# "non-proportional elongation" alone also matches the Rpf row.
+# "non-proportional elongation" alone also matches the Rpf row. `basis` picks
+# which of the row's nom./min. sub-rows the values are read from.
 TABLE3_PROPERTIES = [
     {
         "key": "tensileStrength",
@@ -144,6 +165,7 @@ TABLE3_PROPERTIES = [
         "label": "Tensile strength",
         "symbol": "Rm",
         "unit": "MPa",
+        "basis": "nom.",
     },
     {
         "key": "stressUnderProofLoad",
@@ -151,38 +173,85 @@ TABLE3_PROPERTIES = [
         "label": "Stress under proof load",
         "symbol": "Sp",
         "unit": "MPa",
+        "basis": "nom.",
     },
     {
-        "key": "nonProportionalElongationStress",
+        "key": "minNonProportionalElongationStress",
         "match": "non-proportional elongation, rp0.2,",
         "label": "Stress at 0,2 % non-proportional elongation",
         "symbol": "Rp0,2",
         "unit": "MPa",
+        "basis": "min.",
     },
 ]
 
 TABLE3_PROPERTY_ORDER = [p["key"] for p in TABLE3_PROPERTIES]
+
+# ISO 724 ------------------------------------------------------------------
+#
+# The second workbook, "ISO Standards - ISO 724.xlsx", holds ISO 724:2023
+# Table 1 (basic dimensions) on a single worksheet. ISO 898-1 tabulates only
+# the stress area, so the pitch diameter d2 -- which the torque/preload
+# relations need and which no amount of arithmetic recovers from As alone --
+# comes from here.
+#
+#     A1  "Table 1 - Basic dimensions (ISO 724:2023)"
+#     A2  "Dimensions in millimetres"
+#     A4  nominal/major diameter (D, d)   B4  pitch (P)
+#     C4  pitch diameter (D2, d2)         D4  "Minor diameter", spanning D:E
+#     D5  internal thread, flat crest (D1)
+#     E5  external thread, rounded root (d3)
+#     A6+ one row per (diameter, pitch), the diameter written only on the
+#         first row of each group and carried down
+#
+#     then a "Source: ..." line.
+#
+# The sheet covers every ISO metric thread, far more than ISO 898-1 tabulates
+# loads for, so it's read into a lookup and only the threads that already
+# exist in `boltThreads` take a d2 from it.
+THREAD_SHEET_TITLE = "Table 1"
+THREAD_FIRST_DATA_ROW = 6
+
+# Read for the consistency check in build_tables() rather than for output:
+# As,nom is defined on the mean of the pitch and minor diameters, so
+# (d2 + d3) / 2 must reproduce the d0 recovered from the tabulated As. The
+# two disagree by up to ~0.03 mm because ISO 898-1 rounds As to three
+# significant figures, so the check is a sanity guard on the two workbooks
+# describing the same threads, not an equality.
+THREAD_D0_TOLERANCE = 0.05
 
 
 # ---------------------------------------------------------------------------
 # xlsx reading
 # ---------------------------------------------------------------------------
 
+REL_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
+
+
 def read_sheets(path):
     """Yields (sheet_name, {cell_ref: value}) for every worksheet, in workbook
-    order. Values come back as strings exactly as stored."""
+    order. Values come back as strings exactly as stored.
+
+    The two workbooks this script reads were saved by different tools and
+    write the same XML differently, so neither the relationship parts nor the
+    <sheet> elements can be picked apart by a fixed attribute order: the ISO
+    724 file puts Id after Target on a Relationship and carries an extra
+    state="visible" on its sheet, the ISO 898-1 file does neither. Attributes
+    are therefore read by name, and a Target is treated as package-absolute
+    when it starts with "/" and as relative to xl/ otherwise."""
     with zipfile.ZipFile(path) as z:
         shared = read_shared_strings(z)
-        rel_xml = z.read("xl/_rels/workbook.xml.rels").decode("utf-8")
+        rels = ET.fromstring(z.read("xl/_rels/workbook.xml.rels"))
         targets = {
-            m.group(1): m.group(2)
-            for m in re.finditer(r'Id="(rId\d+)"[^>]*?Target="([^"]+)"', rel_xml)
+            rel.get("Id"): rel.get("Target")
+            for rel in rels.findall(f"{REL_NS}Relationship")
         }
-        workbook = z.read("xl/workbook.xml").decode("utf-8")
-        sheets = re.findall(r'name="([^"]+)"\s+sheetId="\d+"\s+r:id="(rId\d+)"', workbook)
-        for name, rel_id in sheets:
-            member = "xl/" + targets[rel_id].lstrip("/")
-            yield name, read_cells(z.read(member), shared)
+        workbook = ET.fromstring(z.read("xl/workbook.xml"))
+        r_id = f"{{{NS['r']}}}id"
+        for sheet in workbook.findall("m:sheets/m:sheet", NS):
+            target = targets[sheet.get(r_id)]
+            member = target[1:] if target.startswith("/") else "xl/" + target
+            yield sheet.get("name"), read_cells(z.read(member), shared)
 
 
 def read_shared_strings(z):
@@ -329,12 +398,13 @@ def parse_table3(cells, grade_keys):
     ({grade_key: {property_key: number | {variant: number}}}, [descriptor])
     pair: the per-class `properties` maps and the property descriptor list.
 
-    Only the rows named in TABLE3_PROPERTIES are read, and only their "nom."
-    basis. Property class 8.8 spans two columns (d <= 16 mm / d > 16 mm); a
-    property whose two columns agree collapses to a single number, one whose
-    columns differ (Sp, and the min. rows this script doesn't read) stays a
-    map keyed by the column's parenthesised variant label. An em-dash column
-    means the class doesn't have that property and the key is left out."""
+    Only the rows named in TABLE3_PROPERTIES are read, each on the basis
+    named in its spec ("nom." for Rm and Sp, "min." for Rp0,2). Property
+    class 8.8 spans two columns (d <= 16 mm / d > 16 mm); a property whose
+    two columns agree collapses to a single number, one whose columns differ
+    (Sp,nom and Rp0,2,min) stays a map keyed by the column's parenthesised
+    variant label. An em-dash column means the class doesn't have that
+    property and the key is left out."""
     if not _collapse(cells.get("A1")).startswith("Table 3"):
         raise SystemExit(f"Table 3: unexpected title {cells.get('A1')!r}")
     if _collapse(cells.get("C5")) != "Basis":
@@ -383,22 +453,24 @@ def parse_table3(cells, grade_keys):
         if name_row is None:
             raise SystemExit(f"Table 3: no row matching {spec['match']!r}")
 
-        nom_row = next(
+        basis = spec["basis"]
+        basis_tag = basis.rstrip(".")
+        basis_row = next(
             (
                 r
                 for r in (name_row, name_row + 1, name_row + 2)
-                if _collapse(cells.get(f"C{r}")).rstrip(".") == "nom"
+                if _collapse(cells.get(f"C{r}")).rstrip(".") == basis_tag
             ),
             None,
         )
-        if nom_row is None:
-            raise SystemExit(f"Table 3: no 'nom.' basis for {spec['match']!r}")
+        if basis_row is None:
+            raise SystemExit(f"Table 3: no {basis!r} basis for {spec['match']!r}")
 
         # Gather the raw cells per grade key, preserving column order so the
         # 8.8 variant map reads d <= 16 mm then d > 16 mm.
         raw = {}
         for col, key, variant in columns:
-            raw.setdefault(key, []).append((variant, _collapse(cells.get(f"{col}{nom_row}"))))
+            raw.setdefault(key, []).append((variant, _collapse(cells.get(f"{col}{basis_row}"))))
 
         for key, entries in raw.items():
             parsed = {
@@ -415,15 +487,19 @@ def parse_table3(cells, grade_keys):
             else:
                 properties_by_grade[key][spec["key"]] = parsed
 
-        note_letter = _collapse(cells.get(f"N{name_row}")) or _collapse(
-            cells.get(f"N{nom_row}")
-        )
+        # The footnote marker sits on the property-name row or on the basis
+        # sub-row. Note "c" ("Nominal values are given only for ...") hangs on
+        # the name row but qualifies only the nom. sub-row, so a non-nom.
+        # basis takes a marker only from its own sub-row.
+        note_letter = _collapse(cells.get(f"N{basis_row}"))
+        if not note_letter and basis == "nom.":
+            note_letter = _collapse(cells.get(f"N{name_row}"))
         descriptor = {
             "key": spec["key"],
             "label": spec["label"],
             "symbol": spec["symbol"],
             "unit": spec["unit"],
-            "basis": "nom.",
+            "basis": basis,
         }
         if note_letter:
             if note_letter not in notes:
@@ -435,6 +511,66 @@ def parse_table3(cells, grade_keys):
         descriptors.append(descriptor)
 
     return properties_by_grade, descriptors
+
+
+NUMBER_RE = re.compile(r"^[\d.]+$")
+
+
+def parse_basic_dimensions(cells):
+    """Reads the ISO 724 basic dimensions worksheet into
+    {(diameter, pitch): {"d2": float, "d3": float}}.
+
+    The nominal diameter is written only on the first row of each group and
+    carried down, so it's tracked across rows rather than read per row. The
+    table ends at the "Source:" line, which is the first column-A value that
+    isn't a number."""
+    if "Table 1" not in _collapse(cells.get("A1")):
+        raise SystemExit(f"ISO 724: unexpected title {cells.get('A1')!r}")
+    headers = {
+        "A4": "nominal diameter",
+        "B4": "pitch",
+        "C4": "pitch diameter",
+        "D5": "(d1)",
+        "E5": "(d3)",
+    }
+    for ref, expected in headers.items():
+        if expected not in _collapse(cells.get(ref)).lower():
+            raise SystemExit(
+                f"ISO 724: expected {expected!r} in {ref}, got {cells.get(ref)!r}"
+            )
+
+    last_row = max(int(r[1:]) for r in cells if r[1:].isdigit())
+    dimensions = {}
+    diameter = None
+    for row_num in range(THREAD_FIRST_DATA_ROW, last_row + 1):
+        label = (cells.get(f"A{row_num}") or "").strip()
+        if label and NUMBER_RE.match(label) is None:
+            break
+        if label:
+            diameter = float(label)
+        pitch = (cells.get(f"B{row_num}") or "").strip()
+        if not pitch:
+            continue
+        if diameter is None:
+            raise SystemExit(f"ISO 724: row {row_num} has a pitch but no diameter above it")
+        dimensions[(diameter, float(pitch))] = {
+            "d2": float(cells[f"C{row_num}"]),
+            "d3": float(cells[f"E{row_num}"]),
+        }
+
+    if not dimensions:
+        raise SystemExit("ISO 724: no data rows")
+    return dimensions
+
+
+def read_basic_dimensions():
+    sheets = list(read_sheets(THREAD_WORKBOOK))
+    if len(sheets) != 1:
+        raise SystemExit(
+            f"{THREAD_WORKBOOK.name}: expected one worksheet, found "
+            f"{[name for name, _ in sheets]}"
+        )
+    return parse_basic_dimensions(sheets[0][1])
 
 
 def series_key(sheet_name):
@@ -485,8 +621,8 @@ def build_tables():
     if unknown:
         raise SystemExit(f"DEFAULT_GRADES names classes not in the workbook: {sorted(unknown)}")
 
-    # Table 3: nominal Rm / Sp / Rp0.2 per property class, hung on each grade
-    # as a `properties` map, plus the descriptor list they're read against.
+    # Table 3: nominal Rm / Sp and minimum Rp0.2 per property class, hung on
+    # each grade as a `properties` map, plus the descriptor list.
     properties_by_grade, grade_properties = parse_table3(
         table3_cells, [g["key"] for g in grades]
     )
@@ -556,6 +692,26 @@ def build_tables():
 
     ordered = sorted(threads.values(), key=lambda t: (t["diameter"], -t["pitch"]))
 
+    # ISO 724: the pitch diameter d2 for every thread ISO 898-1 tabulates. The
+    # sheet covers the whole metric range, so a thread missing from it means
+    # the two workbooks disagree about which threads exist and is an error;
+    # the extra ISO 724 rows with no load table are simply not looked up.
+    dimensions = read_basic_dimensions()
+    for thread in ordered:
+        basic = dimensions.get((thread["diameter"], thread["pitch"]))
+        if basic is None:
+            raise SystemExit(
+                f'{thread["designation"]}: no ISO 724 basic dimensions row'
+            )
+        thread["d2"] = basic["d2"]
+        stress_diameter = (basic["d2"] + basic["d3"]) / 2
+        if abs(stress_diameter - thread["d0"]) > THREAD_D0_TOLERANCE:
+            raise SystemExit(
+                f'{thread["designation"]}: ISO 724 gives (d2 + d3) / 2 = '
+                f"{stress_diameter:.3f} mm but ISO 898-1's As gives d0 = "
+                f'{thread["d0"]:.3f} mm'
+            )
+
     # Footnotes are per load type, since the notes about substitute values
     # quote figures from the table they sit under. The coarse and fine sheets
     # for one load type share most of their notes, so they're deduplicated
@@ -603,7 +759,7 @@ def js_bool(value):
 
 
 def render_series_block(series):
-    lines = ["const boltStrengthSeries = ["]
+    lines = ["const boltSeries = ["]
     for s in series:
         lines.append(
             "  { "
@@ -621,7 +777,7 @@ def render_series_block(series):
 
 
 def render_load_types_block(load_types):
-    lines = ["const boltStrengthLoadTypes = ["]
+    lines = ["const boltLoadTypes = ["]
     for t in load_types:
         lines.append("  {")
         lines.append(f'    key: {js_str(t["key"])},')
@@ -654,7 +810,7 @@ def render_grade_properties(properties):
 
 
 def render_grades_block(grades):
-    lines = ["const boltStrengthGrades = ["]
+    lines = ["const boltGrades = ["]
     for g in grades:
         lines.append(
             "  { "
@@ -674,7 +830,7 @@ def render_grades_block(grades):
 
 
 def render_grade_properties_block(grade_properties):
-    lines = ["const boltStrengthGradeProperties = ["]
+    lines = ["const boltGradeProperties = ["]
     for p in grade_properties:
         parts = [
             f'key: {js_str(p["key"])}',
@@ -692,7 +848,7 @@ def render_grade_properties_block(grade_properties):
 
 def render_threads_block(threads, load_types, grades):
     grade_order = [g["key"] for g in grades]
-    lines = ["const boltStrengthThreads = ["]
+    lines = ["const boltThreads = ["]
     for t in threads:
         lines.append("  {")
         lines.append(
@@ -704,6 +860,7 @@ def render_threads_block(threads, load_types, grades):
                     f'diameter: {js_num(t["diameter"])}',
                     f'pitch: {js_num(t["pitch"])}',
                     f'series: {js_str(t["series"])}',
+                    f'd2: {js_num(t["d2"])}',
                     f'stressArea: {js_num(t["stressArea"])}',
                     f'd0: {js_num(round(t["d0"], 3))}',
                 ]
@@ -728,7 +885,7 @@ def render_threads_block(threads, load_types, grades):
 
 
 def render_notes_block(notes, load_types):
-    lines = ["const boltStrengthNotes = {"]
+    lines = ["const boltNotes = {"]
     for load_type in load_types:
         entries = notes.get(load_type["key"], [])
         if not entries:
@@ -743,15 +900,15 @@ def render_notes_block(notes, load_types):
 
 
 BLOCKS = (
-    ("boltStrengthSeries", re.compile(r"const boltStrengthSeries = \[.*?\n\];", re.DOTALL)),
-    ("boltStrengthLoadTypes", re.compile(r"const boltStrengthLoadTypes = \[.*?\n\];", re.DOTALL)),
-    ("boltStrengthGrades", re.compile(r"const boltStrengthGrades = \[.*?\n\];", re.DOTALL)),
+    ("boltSeries", re.compile(r"const boltSeries = \[.*?\n\];", re.DOTALL)),
+    ("boltLoadTypes", re.compile(r"const boltLoadTypes = \[.*?\n\];", re.DOTALL)),
+    ("boltGrades", re.compile(r"const boltGrades = \[.*?\n\];", re.DOTALL)),
     (
-        "boltStrengthGradeProperties",
-        re.compile(r"const boltStrengthGradeProperties = \[.*?\n\];", re.DOTALL),
+        "boltGradeProperties",
+        re.compile(r"const boltGradeProperties = \[.*?\n\];", re.DOTALL),
     ),
-    ("boltStrengthThreads", re.compile(r"const boltStrengthThreads = \[.*?\n\];", re.DOTALL)),
-    ("boltStrengthNotes", re.compile(r"const boltStrengthNotes = \{.*?\n\};", re.DOTALL)),
+    ("boltThreads", re.compile(r"const boltThreads = \[.*?\n\];", re.DOTALL)),
+    ("boltNotes", re.compile(r"const boltNotes = \{.*?\n\};", re.DOTALL)),
 )
 
 
@@ -760,12 +917,12 @@ def main():
 
     series, load_types, grades, threads, notes, grade_properties = build_tables()
     rendered = {
-        "boltStrengthSeries": render_series_block(series),
-        "boltStrengthLoadTypes": render_load_types_block(load_types),
-        "boltStrengthGrades": render_grades_block(grades),
-        "boltStrengthGradeProperties": render_grade_properties_block(grade_properties),
-        "boltStrengthThreads": render_threads_block(threads, load_types, grades),
-        "boltStrengthNotes": render_notes_block(notes, load_types),
+        "boltSeries": render_series_block(series),
+        "boltLoadTypes": render_load_types_block(load_types),
+        "boltGrades": render_grades_block(grades),
+        "boltGradeProperties": render_grade_properties_block(grade_properties),
+        "boltThreads": render_threads_block(threads, load_types, grades),
+        "boltNotes": render_notes_block(notes, load_types),
     }
 
     if check_only:
