@@ -59,6 +59,17 @@
   box-sizing: border-box;
 }
 
+/* Stop iOS WebKit (every browser on iPhone, Chrome included) from "font
+   boosting" — auto-inflating the text of wide block elements it decides are
+   under-sized for the viewport. It fires on the colspan-spanning header
+   banners in the general-tolerances tables, blowing up the long angular-table
+   caption; desktop Chromium never autosizes so the bug is invisible there.
+   100% keeps pinch-to-zoom working (unlike `none`). */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 /* Keep sub/sup from inflating the line box of the text they sit in, so
    subscript-heavy prose (μ_min, R_p0,2, …) keeps even line spacing. */
 sub,
@@ -161,7 +172,7 @@ header p {
 }
 
 main {
-  max-width: 900px;
+  max-width: 960px;
   margin: 0 auto;
   padding: 1.5rem;
 }
