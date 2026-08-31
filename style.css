@@ -1753,6 +1753,15 @@ a.fc-result .fc-result-label {
   gap: 2rem;
 }
 
+/* The "Maximum Perpendicularity Error Over Length" figure is appended inside
+   Table 3's own .spec-group (it's derived straight from that table), so it
+   needs no divider or section styling of its own — the group's flex gap spaces
+   it. A little extra room above its title sets it off from the table without a
+   rule. */
+.tol-figure-title {
+  margin-top: 0.5rem;
+}
+
 /* The "Values in millimetres" line between a table heading and its grid. Sits
    right, the way it does on the standard's page. */
 .tol-caption {
@@ -1772,6 +1781,22 @@ a.fc-result .fc-result-label {
 .tol-format-toggle {
   display: flex;
   margin: -0.5rem 0 0.85rem;
+}
+
+/* Table 3 only: the format toggle (left) and unit caption (right) on one row,
+   pushed to opposite edges so the caption's whitespace column carries the
+   toggle instead of stacking. Owns the vertical margin its children give up. */
+.tol-table-controls {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: -0.5rem 0 0.85rem;
+}
+
+.tol-table-controls .tol-format-toggle,
+.tol-table-controls .tol-caption {
+  margin: 0;
 }
 
 /* Deviation cells are short symmetric strings ("±0,1", "±0°30'") — centred

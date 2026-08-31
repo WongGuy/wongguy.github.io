@@ -13,8 +13,12 @@
 //   number      the "Table N" it is in the standard
 //   label       short name for a control or heading
 //   title       the standard's own table title
-//   unitNote    e.g. "Values in millimetres", or "" (Table 3 has none)
-//   rangeHeader the banner spanning the range columns
+//   unitNote    e.g. "Values in millimetres". Read from the workbook, but a
+//               `unitNote` in TABLE_SPECS in the generator script overrides it
+//               (Table 3's is set there — the workbook leaves it blank).
+//   rangeHeader the banner spanning the range columns. Not from the workbook —
+//               a fixed per-table caption hardcoded in TABLE_SPECS in the
+//               generator script; reword it there.
 //   ranges      the basic-size / length ranges as numeric bounds, in order.
 //               Each is { min, max, minInclusive, maxInclusive }; a null bound
 //               is an open end ("over 6" -> max null; "up to 10" -> min null).
@@ -175,8 +179,8 @@ const toleranceTables = [
     number: 3,
     label: "Angular dimensions",
     title: "Permissible deviations of angular dimensions",
-    unitNote: "",
-    rangeHeader: "Permissible deviations for ranges of lengths, in millimetres, of the shorter side of the angle concerned",
+    unitNote: "Side Length in mm",
+    rangeHeader: "Permissible deviations for ranges of lengths (shorter side)",
     ranges: [
       { min: null, max: 10, minInclusive: null, maxInclusive: true },
       { min: 10, max: 50, minInclusive: false, maxInclusive: true },

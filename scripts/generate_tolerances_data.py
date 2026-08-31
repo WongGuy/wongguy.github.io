@@ -55,6 +55,9 @@ Design notes
   subtitle under Table 1's title are all dropped - the page shows the bare
   tables. Footnote reference markers (the superscript "1)" on a range header)
   are stripped from the range text along with the footnotes they point at.
+- The banner spanning the range columns (`rangeHeader`) is not read from the
+  sheet. It's a fixed per-table caption hardcoded in TABLE_SPECS below, so it
+  can be reworded here without touching the workbook.
 - Row and range order follow the worksheet. Sheets are matched to output
   entries by their "Table N" title, and columns/rows are found by their
   header text ("Designation" / "Description"), not by fixed cell addresses,
@@ -82,12 +85,29 @@ REL_NS = "{http://schemas.openxmlformats.org/package/2006/relationships}"
 
 # One output entry per worksheet, keyed by the "Table N" the sheet title
 # starts with. `key` is the stable identity the app uses (and the anchor a
-# future control would persist); `slug` seeds nothing yet but keeps the three
-# entries self-describing.
+# future control would persist). `label` and `rangeHeader` are display strings
+# set here rather than read from the workbook: `label` names the table in a
+# control or heading, `rangeHeader` is the banner the page spans across the
+# range columns. `unitNote` is optional - when given it overrides the note the
+# workbook carries above the grid, for a table the workbook leaves without one.
+# Edit any of them here to reword them.
 TABLE_SPECS = {
-    1: {"key": "linear", "label": "Linear dimensions"},
-    2: {"key": "brokenEdges", "label": "Broken edges"},
-    3: {"key": "angular", "label": "Angular dimensions"},
+    1: {
+        "key": "linear",
+        "label": "Linear dimensions",
+        "rangeHeader": "Permissible deviations for basic size range",
+    },
+    2: {
+        "key": "brokenEdges",
+        "label": "Broken edges",
+        "rangeHeader": "Permissible deviations for basic size range",
+    },
+    3: {
+        "key": "angular",
+        "label": "Angular dimensions",
+        "rangeHeader": "Permissible deviations for ranges of lengths (shorter side)",
+        "unitNote": "Side Length in mm",
+    },
 }
 
 TITLE_RE = re.compile(r"^Table\s+(?P<num>\d+)\s*[—-]\s*(?P<title>.+)$")
@@ -289,6 +309,7 @@ def parse_sheet(name, cells, merges):
     number = int(match.group("num"))
     if number not in TABLE_SPECS:
         raise SystemExit(f"{name}: unexpected table number {number}")
+    spec = TABLE_SPECS[number]
 
     # Header row: the one whose first two columns are Designation / Description.
     header_row = find_row(
@@ -311,23 +332,18 @@ def parse_sheet(name, cells, merges):
     if not ranges:
         raise SystemExit(f"{name}: header row {header_row} has no range columns")
 
-    # The banner above the header row that spans the range columns.
-    range_header = ""
-    for ref in row_refs(cells, header_row - 1):
-        col, _ = split_ref(ref)
-        if col_to_index(col) >= col_to_index("C"):
-            range_header = cells[ref]
-            break
-
     # The "Values in ..." unit note between the title and the class-header
     # banner (any column). The parenthetical subtitle that can sit alongside it
-    # is intentionally not picked up - the page shows the bare tables.
+    # is intentionally not picked up - the page shows the bare tables. A
+    # `unitNote` in TABLE_SPECS overrides this, for a table the workbook leaves
+    # without one (Table 3).
     unit_note = ""
     for row_num in range(2, header_row - 1):
         for ref in row_refs(cells, row_num):
             text = cells[ref]
             if text.lower().startswith("values in") and not unit_note:
                 unit_note = text
+    unit_note = spec.get("unitNote", unit_note)
 
     # Data rows: a single-letter designation in column A, below the header.
     classes = []
@@ -360,14 +376,13 @@ def parse_sheet(name, cells, merges):
     if not classes:
         raise SystemExit(f"{name}: no tolerance-class rows")
 
-    spec = TABLE_SPECS[number]
     return {
         "key": spec["key"],
         "number": number,
         "label": spec["label"],
         "title": match.group("title").strip(),
         "unitNote": unit_note,
-        "rangeHeader": range_header,
+        "rangeHeader": spec["rangeHeader"],
         "ranges": ranges,
         "classes": classes,
     }
