@@ -1774,6 +1774,70 @@ a.fc-result .fc-result-label {
   white-space: nowrap;
 }
 
+/* Keep the "Tolerance class" columns (designation + description) and their
+   shared header cell pinned to the left when the range columns overflow and
+   the table scrolls sideways.
+
+   This is why the table drops border-collapse: with `collapse` the grid lines
+   are painted on the table rather than the cells, so the vertical rules
+   bounding the frozen columns stay behind and tear open a gap the moment the
+   table scrolls under them. With `separate` + zero spacing each cell owns its
+   own right and bottom rule (and the frozen columns their own left rule), so
+   every line travels with the cell it belongs to while the grid still reads as
+   one flat 1px lattice. --tol-label-w fixes the first column's width so the
+   second column's sticky offset lands flush against it — box-sizing is
+   border-box globally, so that width already includes the cell's borders. */
+.est-table.tol-table {
+  --tol-label-w: 2.5rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.tol-table th,
+.tol-table td {
+  border-width: 0 1px 1px 0;
+}
+
+/* The outer top and left edges the right/bottom scheme above leaves off. On
+   the cells, not the table, so the left edge stays put with the frozen columns
+   when the rest of the table scrolls out from under them. */
+.tol-table thead tr:first-child > th {
+  border-top-width: 1px;
+}
+
+.tol-table thead th.est-col-divide,
+.tol-table tbody td.est-row-size {
+  border-left-width: 1px;
+}
+
+.tol-table thead th.est-col-divide,
+.tol-table tbody td.est-row-label {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+/* Above the body's sticky cells and the scrolling range headers it slides past. */
+.tol-table thead th.est-col-divide {
+  z-index: 3;
+}
+
+/* Opaque fill so the scrolled range columns don't show through. The header
+   keeps its own .est-table thead th fill; the body cells take the card colour
+   (a selected row's fill still wins — higher-specificity rule below). */
+.tol-table tbody td.est-row-label {
+  background: var(--panel);
+}
+
+.tol-table tbody td.est-row-size {
+  width: var(--tol-label-w);
+  min-width: var(--tol-label-w);
+}
+
+.tol-table tbody td.est-col-divide {
+  left: var(--tol-label-w);
+}
+
 /* Seam for a future "which class applies" control: the picked class row. */
 .tol-table tbody tr.tol-row--selected > td {
   background: var(--min-bg);
