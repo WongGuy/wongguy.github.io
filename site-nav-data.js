@@ -28,10 +28,10 @@ const siteNav = [
     ],
   },
   {
-    label: "Sheet Metal",
+    label: "Tolerances",
     pages: [
-      { label: "Thicknesses", href: "sheet-metal-thicknesses.html" },
-      { label: "PEMs", href: "sheet-metal-pems.html" },
+      { label: "General Tolerances", href: "general-tolerances.html" },
+      { label: "Sheet Metal", href: "sheet-metal.html" },
     ],
   },
 ];

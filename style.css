@@ -1180,7 +1180,8 @@ a.fc-result .fc-result-label {
   margin-bottom: 0.75rem;
 }
 
-.metric-option {
+.metric-option,
+.tol-format-option {
   padding: 0.3rem 0.85rem;
   background: var(--panel);
   border: 1px solid var(--panel-border);
@@ -1190,15 +1191,18 @@ a.fc-result .fc-result-label {
   cursor: pointer;
 }
 
-.metric-option + .metric-option {
+.metric-option + .metric-option,
+.tol-format-option + .tol-format-option {
   border-left: none;
 }
 
-.metric-option:hover {
+.metric-option:hover,
+.tol-format-option:hover {
   background: var(--accent-dim);
 }
 
-.metric-option.is-active {
+.metric-option.is-active,
+.tol-format-option.is-active {
   background: var(--accent);
   color: var(--panel);
 }
@@ -1726,6 +1730,54 @@ a.fc-result .fc-result-label {
 
 .est-table tbody tr.est-group-start > td {
   border-top-width: 2px;
+}
+
+/* --- ISO 2768-1 general tolerances (general-tolerances.html) --- */
+
+/* The three tables stack with the same spacing the shared .spec-group
+   divider rule expects between siblings. */
+#tolerance-tables {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+/* The "Values in millimetres" line between a table heading and its grid. Sits
+   right, the way it does on the standard's page. */
+.tol-caption {
+  margin: -0.5rem 0 0;
+  color: var(--text-dim);
+  font-size: 0.8rem;
+}
+
+.tol-caption--unit {
+  text-align: right;
+  font-style: italic;
+}
+
+/* Table 3 only: switch the angular deviations between decimal degrees and
+   degree/minute notation. Segmented control, same skin as the plot toggles
+   (rules up in "Plot controls"); left-aligned to the table edge, not centred. */
+.tol-format-toggle {
+  display: flex;
+  margin: -0.5rem 0 0.85rem;
+}
+
+/* Deviation cells are short symmetric strings ("±0,1", "±0°30'") — centred
+   reads better than the numeric right-align est-table gives td by default. */
+.tol-table .tol-value {
+  text-align: center;
+  color: var(--text);
+}
+
+.tol-table .est-row-label {
+  white-space: nowrap;
+}
+
+/* Seam for a future "which class applies" control: the picked class row. */
+.tol-table tbody tr.tol-row--selected > td {
+  background: var(--min-bg);
+  color: var(--min-text);
 }
 
 /* Smallest size that carries the load, and the estimate the steps land on —
