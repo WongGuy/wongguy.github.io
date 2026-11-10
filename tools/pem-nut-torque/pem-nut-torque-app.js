@@ -25,7 +25,7 @@
 // Under the plot, a checkbox per mating screw material (every table's
 // materials merged, as above) picks which of them are shown: the plot's
 // categories and the table view's torque columns are both cut down to the
-// ticked ones. "Show common" ticks just Stainless A2-70 and Steel PC 8.8, 9.8
+// ticked ones. "Show common" ticks just Stainless A2-70 and Steel PC 8.8, 10.9
 // and 12.9 — the same four drawn bold in the list — like the bolt size
 // estimator's "Show common" for its property classes.
 //
@@ -126,7 +126,7 @@
   const COMMON_GRADES = new Set([
     "Stainless A2-70",
     "Steel PC 8.8",
-    "Steel PC 9.8",
+    "Steel PC 10.9",
     "Steel PC 12.9",
   ]);
 
