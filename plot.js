@@ -40,7 +40,17 @@
 //       key, label,
 //       onClick,            // () => void; e.g. switch every series on or off
 //     }, ...],
+//     title,                // optional; printed above the plot in the copied /
+//                           // saved image (and names the saved file) — the
+//                           // page's own heading isn't part of the plot
 //   })
+//
+// Every drawn plot gets a "Copy image" / "Save PNG" row under its legend (Copy
+// only where the browser can put an image on the clipboard). The image is the
+// plot, the `title` above it and the legend below it redrawn as SVG with only
+// what's on the plot — items that are off, disabled, or carry a note are left
+// out, as is any item with `exportable: false` (a legend checkbox that isn't a
+// series, say) — always in the light theme, at 2x. See buildExport().
 //
 // Passing `legendItems` is what turns the legend into the plot's control
 // surface: the list is drawn as given rather than derived from what's on the
@@ -405,6 +415,421 @@
     }
     swatch.appendChild(path);
     return swatch;
+  }
+
+  // --- Export: Copy image / Save PNG ---
+  //
+  // The plot on screen is an SVG styled by style.css, with its legend and
+  // title in HTML around it. None of that survives being turned into an image
+  // on its own, so the export builds a standalone SVG: the plot cloned with
+  // every element's computed style written inline, the title above it, and
+  // the legend redrawn below it as SVG — just the series that are on, no
+  // checkboxes or buttons. That SVG is then drawn onto a canvas at 2x and
+  // handed over as a PNG.
+  //
+  // The image is always in the light theme, on the light panel color, since a
+  // copied plot usually ends up in a document. The styles are read with the
+  // light theme switched on for the moment it takes to read them and then
+  // switched straight back, all in one task, so the page never paints in it.
+
+  const EXPORT_PAD = 16;
+  const EXPORT_SCALE = 2;
+  const EXPORT_PROPS = [
+    "fill", "fill-opacity", "stroke", "stroke-width", "stroke-opacity",
+    "stroke-dasharray", "stroke-linejoin", "stroke-linecap", "opacity",
+    "paint-order",
+  ];
+  const EXPORT_TEXT_PROPS = ["font-family", "font-size", "font-weight", "font-style"];
+  const EXPORT_DRAWN = new Set(["line", "path", "circle", "rect", "text", "tspan", "polyline", "polygon"]);
+
+  function withLightTheme(fn) {
+    const root = document.documentElement;
+    const previous = root.getAttribute("data-theme");
+    if (previous === "light") return fn();
+    root.setAttribute("data-theme", "light");
+    try {
+      return fn();
+    } finally {
+      if (previous === null) root.removeAttribute("data-theme");
+      else root.setAttribute("data-theme", previous);
+    }
+  }
+
+  // Writes each drawn element's computed style onto its clone, so the clone
+  // looks the same with no stylesheet. The two trees have the same shape, so
+  // their querySelectorAll lists line up one to one.
+  function inlineComputedStyles(source, clone) {
+    const sources = source.querySelectorAll("*");
+    const clones = clone.querySelectorAll("*");
+    const dropped = [];
+    sources.forEach((node, i) => {
+      const copy = clones[i];
+      // The hover hit area is invisible and has no business in an image.
+      if (node.classList.contains("plot-overlay")) {
+        dropped.push(copy);
+        return;
+      }
+      copy.removeAttribute("class");
+      // Colors set as attributes (often var(--series-N)) are superseded by
+      // the inline style below; dropped so the SVG holds no unresolved vars.
+      copy.removeAttribute("fill");
+      copy.removeAttribute("stroke");
+      const tag = node.tagName.toLowerCase();
+      if (!EXPORT_DRAWN.has(tag)) return;
+      const computed = getComputedStyle(node);
+      const props = tag === "text" || tag === "tspan"
+        ? EXPORT_PROPS.concat(EXPORT_TEXT_PROPS)
+        : EXPORT_PROPS;
+      copy.setAttribute(
+        "style",
+        props.map((p) => `${p}:${computed.getPropertyValue(p)}`).join(";")
+      );
+    });
+    dropped.forEach((copy) => copy.remove());
+  }
+
+  function textMeasurer(fontFamily) {
+    const ctx = document.createElement("canvas").getContext("2d");
+    return (text, size, weight) => {
+      ctx.font = `${weight || 400} ${size}px ${fontFamily}`;
+      return ctx.measureText(text).width;
+    };
+  }
+
+  // Greedy word wrap for the title, so a long one on a narrow plot breaks
+  // into lines instead of running off the image.
+  function wrapText(text, maxWidth, measure) {
+    const lines = [];
+    let line = "";
+    text.split(/\s+/).filter(Boolean).forEach((word) => {
+      const next = line ? `${line} ${word}` : word;
+      if (line && measure(next) > maxWidth) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = next;
+      }
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  // The legend as it should read in the image: only what's on the plot. An
+  // item that's off, disabled, noted (nothing to draw) or marked
+  // `exportable: false` is left out, and a group is kept only while its head
+  // is on and at least one of its items survives. An ungrouped item among
+  // groups becomes a group with no head, as it sits in the HTML legend.
+  function exportLegendItems(opts, drawnSeries) {
+    const items =
+      opts.legendItems ||
+      drawnSeries.map((s) => ({ key: s.key, label: s.label, color: s.color }));
+    const keep = (item) =>
+      item.active !== false && !item.disabled && !item.note && item.exportable !== false;
+    const grouped = items.some((item) => Array.isArray(item.items));
+    if (!grouped) return { grouped: false, items: items.filter(keep) };
+    const groups = [];
+    items.forEach((item) => {
+      if (!Array.isArray(item.items)) {
+        if (keep(item)) groups.push({ head: null, items: [item] });
+        return;
+      }
+      if (!keep(item)) return;
+      const children = item.items.filter(keep);
+      if (children.length) groups.push({ head: item, items: children });
+    });
+    return { grouped: true, groups: groups };
+  }
+
+  // Lays the export legend out as SVG, `width` wide, starting at y = top.
+  // Returns the group and its height. Mirrors the HTML legend: a centered
+  // wrapping row of items, or for a grouped legend a two-column table of
+  // heads and wrapping items.
+  function layoutExportLegend(legend, width, top, look) {
+    const g = el("g", {});
+    const size = look.fontSize;
+    const rowH = Math.round(size * 1.6);
+    const swatchW = 14;
+    const swatchGap = 6;
+    const itemGap = 20;
+    const maxW = width - 2 * EXPORT_PAD;
+
+    const hasSwatch = (item) => !!(item.shape || item.hollow || item.color);
+    const itemWidth = (item, weight) =>
+      (hasSwatch(item) ? swatchW + swatchGap : 0) + look.measure(item.label, size, weight);
+
+    function drawItem(item, x, cy, weight) {
+      if (item.shape || item.hollow) {
+        const color = item.color ? look.resolve(item.color) : look.text;
+        const path = el("path", { d: markerPath(item.shape, x + swatchW / 2, cy, 4.6) });
+        if (item.hollow) {
+          path.setAttribute("style", `fill:none;stroke:${color};stroke-width:1.5`);
+        } else {
+          path.setAttribute("style", `fill:${color}`);
+        }
+        g.appendChild(path);
+        x += swatchW + swatchGap;
+      } else if (item.color) {
+        g.appendChild(
+          el("rect", {
+            x: x + 0.5, y: cy - 4, width: swatchW - 1, height: 8,
+            style: `fill:${look.resolve(item.color)};stroke:${look.border};stroke-width:1`,
+          })
+        );
+        x += swatchW + swatchGap;
+      }
+      const text = el("text", {
+        x: x,
+        y: cy + size * 0.35,
+        style: `fill:${look.text};font-family:${look.fontFamily};font-size:${size}px;font-weight:${weight || 400}`,
+      });
+      text.textContent = item.label;
+      g.appendChild(text);
+    }
+
+    // Splits items into lines no wider than maxWidth.
+    function flow(items, maxWidth, weight) {
+      const lines = [[]];
+      let used = 0;
+      items.forEach((item) => {
+        const w = itemWidth(item, weight);
+        const line = lines[lines.length - 1];
+        const next = line.length ? used + itemGap + w : w;
+        if (line.length && next > maxWidth) {
+          lines.push([{ item: item, w: w }]);
+          used = w;
+        } else {
+          line.push({ item: item, w: w });
+          used = next;
+        }
+      });
+      return lines.filter((line) => line.length);
+    }
+    const lineWidth = (line) =>
+      line.reduce((sum, entry) => sum + entry.w, 0) + itemGap * (line.length - 1);
+
+    let y = top;
+    if (!legend.grouped) {
+      flow(legend.items, maxW).forEach((line) => {
+        let x = (width - lineWidth(line)) / 2;
+        line.forEach((entry) => {
+          drawItem(entry.item, x, y + rowH / 2);
+          x += entry.w + itemGap;
+        });
+        y += rowH;
+      });
+      return { node: g, height: y - top };
+    }
+
+    const headW = Math.max(
+      0,
+      ...legend.groups.map((group) => (group.head ? itemWidth(group.head, 600) : 0))
+    );
+    const itemsMax = Math.max(40, maxW - headW - itemGap);
+    const flowed = legend.groups.map((group) => flow(group.items, itemsMax));
+    const usedW = Math.max(0, ...flowed.flatMap((lines) => lines.map(lineWidth)));
+    const left = Math.max(EXPORT_PAD, (width - (headW + itemGap + usedW)) / 2);
+    legend.groups.forEach((group, i) => {
+      if (group.head) drawItem(group.head, left, y + rowH / 2, 600);
+      flowed[i].forEach((line) => {
+        let x = left + headW + itemGap;
+        line.forEach((entry) => {
+          drawItem(entry.item, x, y + rowH / 2);
+          x += entry.w + itemGap;
+        });
+        y += rowH;
+      });
+    });
+    return { node: g, height: y - top };
+  }
+
+  // Builds the standalone export SVG for a drawn plot. Returns its markup and
+  // size, or null when there's no plot drawn.
+  function buildExport(container) {
+    const state = states.get(container);
+    const source = container.querySelector(":scope > .plot-svg");
+    if (!state || !source) return null;
+    const opts = state.options;
+    const drawn = (opts.series || []).filter((s) => s.points && s.points.length);
+
+    return withLightTheme(() => {
+      const probe = document.createElement("span");
+      probe.style.display = "none";
+      container.appendChild(probe);
+      const resolve = (color) => {
+        probe.style.color = "";
+        probe.style.color = color;
+        return getComputedStyle(probe).color;
+      };
+      const legendEl = container.querySelector(":scope > .plot-legend");
+      const legendStyle = getComputedStyle(legendEl || container);
+      const fontFamily = getComputedStyle(container).fontFamily;
+      const look = {
+        fontFamily: fontFamily,
+        fontSize: parseFloat(legendStyle.fontSize) || 13,
+        measure: textMeasurer(fontFamily),
+        resolve: resolve,
+        text: resolve("var(--text)"),
+        border: resolve("var(--panel-border)"),
+      };
+      const background = resolve("var(--panel)");
+
+      const plot = source.cloneNode(true);
+      inlineComputedStyles(source, plot);
+
+      ["role", "aria-label", "class", "style"].forEach((a) => plot.removeAttribute(a));
+
+      const plotW = Number(source.getAttribute("width"));
+      const plotH = Number(source.getAttribute("height"));
+      const width = plotW + 2 * EXPORT_PAD;
+
+      const titleSize = Math.round(look.fontSize * 1.3);
+      const titleLines = opts.title
+        ? wrapText(String(opts.title), width - 2 * EXPORT_PAD, (t) =>
+            look.measure(t, titleSize, 700)
+          )
+        : [];
+      const titleLineH = Math.round(titleSize * 1.35);
+      const plotTop = EXPORT_PAD + (titleLines.length ? titleLines.length * titleLineH + 8 : 0);
+
+      const svg = el("svg", { width: width });
+      svg.appendChild(el("rect", { x: 0, y: 0, width: "100%", height: "100%", fill: background }));
+
+      titleLines.forEach((line, i) => {
+        const text = el("text", {
+          x: width / 2,
+          y: EXPORT_PAD + i * titleLineH + titleSize,
+          "text-anchor": "middle",
+          style: `fill:${look.text};font-family:${fontFamily};font-size:${titleSize}px;font-weight:700`,
+        });
+        text.textContent = line;
+        svg.appendChild(text);
+      });
+
+      plot.setAttribute("x", EXPORT_PAD);
+      plot.setAttribute("y", plotTop);
+      plot.setAttribute("overflow", "visible");
+      svg.appendChild(plot);
+
+      let height = plotTop + plotH;
+      const legend = exportLegendItems(opts, drawn);
+      const legendCount = legend.grouped ? legend.groups.length : legend.items.length;
+      if (legendCount) {
+        const laid = layoutExportLegend(legend, width, height + 10, look);
+        svg.appendChild(laid.node);
+        height += 10 + laid.height;
+      }
+      height += EXPORT_PAD;
+      // Kept attached until here: a detached element has no computed style,
+      // and the legend resolves its colors through it.
+      probe.remove();
+
+      svg.setAttribute("height", height);
+      svg.setAttribute("viewBox", `0 0 ${width} ${height}`);
+      return {
+        markup: new XMLSerializer().serializeToString(svg),
+        width: width,
+        height: height,
+        filename:
+          (String(opts.title || "plot")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "") || "plot") + ".png",
+      };
+    });
+  }
+
+  function exportToPng(exported) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(exported.width * EXPORT_SCALE);
+        canvas.height = Math.round(exported.height * EXPORT_SCALE);
+        const ctx = canvas.getContext("2d");
+        ctx.scale(EXPORT_SCALE, EXPORT_SCALE);
+        ctx.drawImage(img, 0, 0, exported.width, exported.height);
+        canvas.toBlob(
+          (blob) => (blob ? resolve(blob) : reject(new Error("PNG encoding failed"))),
+          "image/png"
+        );
+      };
+      img.onerror = () => reject(new Error("SVG failed to load as an image"));
+      img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(exported.markup);
+    });
+  }
+
+  function canCopyImage() {
+    return !!(
+      navigator.clipboard &&
+      typeof navigator.clipboard.write === "function" &&
+      typeof window.ClipboardItem === "function"
+    );
+  }
+
+  // Safari only allows the clipboard write if it starts inside the click, so
+  // the ClipboardItem is handed the PNG as a promise rather than a finished
+  // blob. Browsers that won't take a promise there get a second try with the
+  // blob once it's ready.
+  function copyPlotImage(container) {
+    const exported = buildExport(container);
+    if (!exported) return Promise.reject(new Error("Nothing to copy"));
+    const png = exportToPng(exported);
+    const write = (data) =>
+      navigator.clipboard.write([new window.ClipboardItem({ "image/png": data })]);
+    let first;
+    try {
+      first = write(png);
+    } catch (err) {
+      first = Promise.reject(err);
+    }
+    return first.catch(() => png.then((blob) => write(blob)));
+  }
+
+  function savePlotImage(container) {
+    const exported = buildExport(container);
+    if (!exported) return Promise.reject(new Error("Nothing to save"));
+    return exportToPng(exported).then((blob) => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = exported.filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
+  }
+
+  // The Copy image / Save PNG row under a drawn plot. A button reports how it
+  // went in its own label for a moment, then reads as before.
+  function buildExportBar(container) {
+    const row = document.createElement("div");
+    row.className = "plot-export";
+    const add = (label, action, done) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "plot-export-action";
+      button.textContent = label;
+      let timer = 0;
+      const report = (text) => {
+        button.textContent = text;
+        clearTimeout(timer);
+        timer = setTimeout(() => (button.textContent = label), 1600);
+      };
+      button.addEventListener("click", () => {
+        action(container).then(
+          () => done && report(done),
+          (err) => {
+            report("Failed");
+            if (window.console) console.error(err);
+          }
+        );
+      });
+      row.appendChild(button);
+    };
+    if (canCopyImage()) add("Copy image", copyPlotImage, "Copied");
+    add("Save PNG", savePlotImage, "");
+    return row;
   }
 
   function draw(container) {
@@ -923,6 +1348,7 @@
     container.appendChild(svg);
 
     container.appendChild(buildLegend(container, opts, series));
+    container.appendChild(buildExportBar(container));
 
     // --- Hover tooltip ---
     // One overlay catches the pointer for the whole plot area and picks the

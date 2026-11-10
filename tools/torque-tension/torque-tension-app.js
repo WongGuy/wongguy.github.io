@@ -668,6 +668,8 @@
         label: "Show Min Force After α",
         color: "var(--text-dim)",
         active: showLowerBounds,
+        // A switch, not a series: left out of the copied image's legend.
+        exportable: false,
         onToggle: (checked) => setShowLowerBounds(checked),
       });
     }
@@ -729,6 +731,7 @@
       .concat(buildMuMaxIntersections(series));
 
     renderLinePlot(plotEl, {
+      title: plotTitleEl.textContent,
       series: plotSeries,
       legendItems: buildLegendItems(),
       yGuides: buildLowerBounds(series),

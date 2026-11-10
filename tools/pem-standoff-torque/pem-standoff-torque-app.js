@@ -437,6 +437,7 @@
     });
 
     renderLinePlot(plotEl, {
+      title: plotTitleEl.textContent,
       series: series,
       legendItems: buildLegendItems(size),
       legendSlots: allMaterials.length,

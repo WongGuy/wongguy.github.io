@@ -400,6 +400,7 @@
     const mountEl = document.getElementById("perpendicularity-plot");
     if (!mountEl) return;
     renderLinePlot(mountEl, {
+      title: "Maximum Perpendicularity Error Over Length",
       series: buildSeries(),
       legendItems: buildLegendItems(),
       xLabel: "Length of Shorter Side (mm)",

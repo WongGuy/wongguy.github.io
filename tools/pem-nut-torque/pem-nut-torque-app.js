@@ -564,6 +564,7 @@
     }));
 
     renderLinePlot(plotEl, {
+      title: plotTitleEl.textContent,
       series: series,
       legendItems: buildLegendItems(size, "markers"),
       legendSlots: legendSlots,
@@ -622,6 +623,7 @@
     });
 
     renderLinePlot(plotEl, {
+      title: plotTitleEl.textContent,
       series: series,
       legendItems: buildLegendItems(size, "colors"),
       legendSlots: legendSlots,

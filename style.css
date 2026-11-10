@@ -1222,6 +1222,29 @@ a.fc-result .fc-result-label {
   background: var(--accent-dim);
 }
 
+/* Copy image / Save PNG (see plot.js): a small row of plot tools under the
+   legend, right-aligned so it doesn't read as more legend buttons. */
+.plot-export {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+.plot-export-action {
+  padding: 0.2rem 0.6rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font: inherit;
+  font-size: 0.75rem;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.plot-export-action:hover {
+  background: var(--accent-dim);
+}
+
 /* Nothing to offer right now (e.g. a PEM table that doesn't list the selected
    size): dimmed as a whole, checkbox included, and not clickable. */
 .plot-legend-item.is-disabled {

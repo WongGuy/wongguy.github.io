@@ -223,6 +223,7 @@
     const yValues = series.flatMap((s) => s.points.map((p) => p.y));
 
     renderLinePlot(plotEl, {
+      title: plotTitleEl.textContent,
       series: series,
       legendItems: buildLegendItems(),
       xLabel: "Thread Engagement (mm)",
