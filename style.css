@@ -1218,6 +1218,23 @@ a.fc-result .fc-result-label {
   color: var(--panel);
 }
 
+/* A segmented control with more options than fit one row on a phone (the PEM
+   series picker): lets it wrap, and draws every button's full border with a
+   1px overlap instead of dropping the left one, so a button that starts a new
+   row still has its left edge. */
+.metric-toggle--wrap {
+  flex-wrap: wrap;
+  padding: 1px 0 0 1px;
+}
+
+.metric-toggle--wrap .metric-option {
+  margin: -1px 0 0 -1px;
+}
+
+.metric-toggle--wrap .metric-option + .metric-option {
+  border-left: 1px solid var(--panel-border);
+}
+
 @media (max-width: 600px) {
   header {
     padding: 0.5rem 1rem;

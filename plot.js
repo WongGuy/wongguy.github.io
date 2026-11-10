@@ -41,7 +41,18 @@
 // in the torque tables, not a degenerate one, so markers are drawn by default.
 // An individual point can opt out of its marker with `marker: false` (it still
 // anchors the line), and a series can set `dash` to a stroke-dasharray string
-// to draw its line dashed. A drawn point with `guide: true` also gets lines
+// to draw its line dashed, or `line: false` to draw its markers unconnected
+// (for points that don't lie on a continuous x, like categories).
+//
+// `xCategories: [label, ...]` makes the x axis categorical: category i sits at
+// x = i, the domain defaults to -0.5 .. n - 0.5 so each category gets an equal
+// band, the vertical gridlines fall on the band edges instead of on ticks, and
+// each band is labeled with its category instead of a number. A label can be a
+// string or an array of strings, one per line. A point's x needn't be a whole
+// number — a caller can nudge series apart within a band (dodging) so markers
+// with equal values don't hide each other. When the widest label line won't
+// fit its band, the labels are drawn on one line each, rotated 45°, and the
+// plot grows taller to make room for them. A drawn point with `guide: true` also gets lines
 // dropped to both axes and its x/y values printed on them, all in the series
 // color.
 //
@@ -113,6 +124,38 @@
     // Trim the padding zeros a fixed decimal count leaves ("0.250" -> "0.25"),
     // but only past the decimal point — trimming "100" would leave "1".
     return decimals ? text.replace(/\.?0+$/, "") : text;
+  }
+
+  // Measures how wide each { cls, text } renders under the plot's own CSS
+  // (e.g. `.plot-tick-label text`) by drawing them into a hidden probe SVG
+  // inside the container. Callers measure before the container is cleared —
+  // forcing layout on an emptied container is what the clientWidth note in
+  // draw() warns about. Comes back as 0s when the container isn't laid out
+  // (e.g. display: none), which callers read as "fits".
+  function measureText(container, items) {
+    if (!items.length) return [];
+    const probe = el("svg", { width: 1, height: 1, "aria-hidden": "true" });
+    probe.style.position = "absolute";
+    probe.style.left = "0";
+    probe.style.top = "0";
+    probe.style.visibility = "hidden";
+    const nodes = items.map((item) => {
+      const group = el("g", { class: item.cls });
+      const text = el("text", {});
+      text.textContent = item.text;
+      group.appendChild(text);
+      probe.appendChild(group);
+      return text;
+    });
+    container.appendChild(probe);
+    let widths;
+    try {
+      widths = nodes.map((node) => node.getComputedTextLength() || 0);
+    } catch (err) {
+      widths = items.map(() => 0);
+    }
+    container.removeChild(probe);
+    return widths;
   }
 
   function extent(series, axis) {
@@ -202,6 +245,25 @@
     // position and snap the browser's scroll to the top.
     const width = Math.max(280, container.clientWidth || 640);
 
+    // Each category as an array of label lines (see xCategories above).
+    const categories = Array.isArray(opts.xCategories)
+      ? opts.xCategories.map((c) => (Array.isArray(c) ? c.map(String) : [String(c)]))
+      : null;
+
+    // Text whose rendered size decides the layout — the y-axis title and the
+    // category labels — measured now, for the same reason as clientWidth
+    // above. Each probe() returns that string's index into `textWidths`.
+    const probes = [];
+    const probe = (cls, text) => probes.push({ cls: cls, text: text }) - 1;
+    const yTitleProbe = opts.yLabel ? probe("plot-axis-title", opts.yLabel) : -1;
+    const categoryProbes = categories
+      ? categories.map((lines) => ({
+          lines: lines.map((line) => probe("plot-tick-label", line)),
+          joined: probe("plot-tick-label", lines.join(" ")),
+        }))
+      : [];
+    const textWidths = series.length ? measureText(container, probes) : [];
+
     container.innerHTML = "";
 
     if (!series.length) {
@@ -215,7 +277,7 @@
       return;
     }
 
-    const height = Math.round(Math.min(460, Math.max(260, width * 0.58)));
+    let height = Math.round(Math.min(460, Math.max(260, width * 0.58)));
     const compact = width < 520;
 
     const margin = {
@@ -227,6 +289,47 @@
       left: compact ? 60 : 72,
     };
     const plotW = width - margin.left - margin.right;
+
+    // Category labels sit stacked under their band if the widest line fits
+    // it, otherwise on one line each, rotated 45°. Either way the extra room
+    // is added to the plot's height rather than taken out of the plot area.
+    const categoryLineHeight = compact ? 11 : 12;
+    let rotateCategories = false;
+    if (categories) {
+      const band = plotW / Math.max(1, categories.length);
+      const widestLine = Math.max(
+        0,
+        ...categoryProbes.flatMap((p) => p.lines.map((i) => textWidths[i] || 0))
+      );
+      if (widestLine <= band - 6) {
+        const maxLines = Math.max(1, ...categories.map((lines) => lines.length));
+        const extra = (maxLines - 1) * categoryLineHeight;
+        margin.bottom += extra;
+        height += extra;
+      } else {
+        rotateCategories = true;
+        const widestJoined = Math.max(
+          0,
+          ...categoryProbes.map((p) => textWidths[p.joined] || 0)
+        );
+        // A label rotated 45° drops by its length (plus a line of glyph
+        // height) times sin 45°, below a small gap under the axis; the axis
+        // title keeps its usual row beneath that.
+        const drop = Math.ceil((widestJoined + categoryLineHeight) * Math.SQRT1_2);
+        const bottom = 10 + drop + (compact ? 24 : 28);
+        if (bottom > margin.bottom) {
+          height += bottom - margin.bottom;
+          margin.bottom = bottom;
+        }
+      }
+    }
+
+    // A y-axis title longer than the plot is tall would run off both ends of
+    // it, into whatever sits above and below; grow the plot to fit it instead.
+    const yTitleRoom = yTitleProbe >= 0 ? Math.ceil(textWidths[yTitleProbe] || 0) + 8 : 0;
+    if (height - margin.top - margin.bottom < yTitleRoom) {
+      height = margin.top + margin.bottom + yTitleRoom;
+    }
     const plotH = height - margin.top - margin.bottom;
 
     const [xMinData, xMaxData] = extent(series, "x");
@@ -238,9 +341,15 @@
     // use the screen space on a series that never approaches zero. The x
     // domain is padded a little past the last point so its marker isn't
     // clipped by the axis; explicit xMax/yMax bounds are taken as-is.
+    // A categorical axis instead defaults to one equal band per category.
     const xPad = (xMaxData - xMinData) * 0.06 || Math.max(xMaxData * 0.06, 1);
-    const xMin = opts.xMin != null ? opts.xMin : 0;
-    const xMax = opts.xMax != null ? opts.xMax : xMaxData + xPad;
+    const xMin = opts.xMin != null ? opts.xMin : categories ? -0.5 : 0;
+    const xMax =
+      opts.xMax != null
+        ? opts.xMax
+        : categories
+          ? categories.length - 0.5
+          : xMaxData + xPad;
     const yMin = opts.yMin != null ? opts.yMin : 0;
     const yMax =
       opts.yMax != null ? opts.yMax : yMaxData > 0 ? yMaxData * 1.08 : 1;
@@ -248,7 +357,11 @@
     const xScale = (v) => margin.left + ((v - xMin) / (xMax - xMin)) * plotW;
     const yScale = (v) => margin.top + plotH - ((v - yMin) / (yMax - yMin)) * plotH;
 
-    const formatX = opts.formatX || defaultFormat;
+    const formatX =
+      opts.formatX ||
+      (categories
+        ? (v) => (categories[Math.round(v)] || []).join(" ")
+        : defaultFormat);
     const formatY = opts.formatY || defaultFormat;
 
     // Points flagged `guide: true` (and actually drawn) get lines dropped to
@@ -294,9 +407,16 @@
         `${opts.yLabel || "y"} versus ${opts.xLabel || "x"}, ${series.length} series`,
     });
 
-    const xTicks = ticksFor(xMin, xMax, compact ? 6 : 12);
+    // On a categorical axis the labels sit at the category centers but the
+    // gridlines run along the band edges, and there's no minor x grid.
+    const xTicks = categories
+      ? categories.map((_, i) => i)
+      : ticksFor(xMin, xMax, compact ? 6 : 12);
+    const xGridTicks = categories
+      ? categories.slice(1).map((_, i) => i + 0.5)
+      : xTicks;
     const yTicks = ticksFor(yMin, yMax, compact ? 6 : 9);
-    const xMinorTicks = minorTicksBetween(xTicks);
+    const xMinorTicks = categories ? [] : minorTicksBetween(xTicks);
     const yMinorTicks = minorTicksBetween(yTicks);
 
     // --- Grid ---
@@ -322,7 +442,7 @@
     svg.appendChild(minorGrid);
 
     const grid = el("g", { class: "plot-grid" });
-    xTicks.forEach((t) => {
+    xGridTicks.forEach((t) => {
       grid.appendChild(
         el("line", {
           x1: xScale(t), y1: margin.top,
@@ -357,7 +477,35 @@
     svg.appendChild(axes);
 
     const labels = el("g", { class: "plot-tick-label" });
-    xTicks.forEach((t) => {
+    if (categories) {
+      const axisY = margin.top + plotH;
+      categories.forEach((lines, i) => {
+        const cx = xScale(i);
+        if (rotateCategories) {
+          // Anchored by its end just under the tick, so the label hangs down
+          // and to the left of its band.
+          const ax = cx + 4;
+          const ay = axisY + 12;
+          const text = el("text", {
+            x: ax,
+            y: ay,
+            "text-anchor": "end",
+            transform: `rotate(-45 ${ax} ${ay})`,
+          });
+          text.textContent = lines.join(" ");
+          labels.appendChild(text);
+          return;
+        }
+        const text = el("text", { x: cx, y: axisY + 16, "text-anchor": "middle" });
+        lines.forEach((line, j) => {
+          const tspan = el("tspan", { x: cx, dy: j === 0 ? 0 : categoryLineHeight });
+          tspan.textContent = line;
+          text.appendChild(tspan);
+        });
+        labels.appendChild(text);
+      });
+    }
+    (categories ? [] : xTicks).forEach((t) => {
       // Drop a regular tick label that a guide readout would land on top of.
       if (nearGuideX(xScale(t))) return;
       const text = el("text", {
@@ -440,7 +588,7 @@
     const markers = [];
     series.forEach((s) => {
       const group = el("g", { class: "plot-series" });
-      if (s.points.length > 1) {
+      if (s.points.length > 1 && s.line !== false) {
         const d = s.points
           .map((p, i) => `${i === 0 ? "M" : "L"}${xScale(p.x)} ${yScale(p.y)}`)
           .join(" ");
