@@ -60,6 +60,21 @@
 // the legend under it (drawn with renderPlotLegend), plain, with no colors,
 // since there are no bars for them to key. Only the view on screen is drawn.
 //
+// I CRAVE DETAIL
+//
+// The "I Crave Detail!" checkbox beside the slider applies to the table view
+// only; in the chart view it's hidden and the chart is always the one above.
+// Ticked, the table is the one above. Unticked, the table shows every size at
+// once instead and the slider's knob and size readout are hidden (the slider
+// is disabled): the table drops the test sheet columns and the thread column,
+// and its Max. Torque column splits into one column per size (M3, M3.5, M4,
+// M5), a row per shown table and material. A size's thread codes share its
+// column — 3.5M3 is under M3 — printing each distinct torque among them
+// ("0.55", or "0.55 / 0.60" if they ever differed). The legend lists every
+// material each table offers at any size, with no table locked. The checkbox
+// shares its localStorage key ("detailEnabled") with the screw and nut
+// selectors' checkbox, so it's the same setting site-wide.
+//
 // State remembered in localStorage between visits: the view, the size, which
 // tables are switched off, and which materials are (per table, "SO:Aluminum"). Off rather
 // than on, so a table or material not seen before starts switched on.
@@ -77,8 +92,12 @@
   const tableViewEl = document.getElementById("torque-table-view");
   const tableWrapEl = document.getElementById("torque-table-wrap");
   const tableLegendEl = document.getElementById("torque-table-legend");
+  const detailToggleEl = document.getElementById("detail-toggle");
+  const sliderBlockEl = sliderEl.closest(".slider-block");
 
   const SIZE_STORAGE_KEY = "pemStandoffTorqueSize";
+  // Shared with the screw and nut selectors, so the checkbox is one setting.
+  const DETAIL_STORAGE_KEY = "detailEnabled";
   const VIEW_STORAGE_KEY = "pemStandoffTorqueView";
   const HIDDEN_SERIES_STORAGE_KEY = "pemStandoffTorqueHiddenSeries";
   const HIDDEN_MATERIALS_STORAGE_KEY = "pemStandoffTorqueHiddenMaterials";
@@ -147,6 +166,22 @@
       .sort((a, b) => a.diameter - b.diameter);
   })();
 
+  // Every size at once, shaped like an entry of `sizes` (no size name): one
+  // group per table, each with all its rows, thread codes and materials. The
+  // legend, the head rules and the notes take this in place of a size when
+  // detail is off.
+  const everySize = {
+    size: null,
+    groups: pemStandoffSeries.map((series) => {
+      const group = { series: series, rows: series.rows.slice(), threads: [], materials: [] };
+      series.rows.forEach((row) => {
+        if (!group.threads.includes(row.thread)) group.threads.push(row.thread);
+        if (!group.materials.includes(row.material)) group.materials.push(row.material);
+      });
+      return group;
+    }),
+  };
+
   function getStoredSet(key) {
     try {
       const stored = JSON.parse(localStorage.getItem(key));
@@ -161,9 +196,23 @@
   let selectedIndex = 0;
   const storedView = localStorage.getItem(VIEW_STORAGE_KEY);
   let selectedView = VIEWS.some((v) => v.key === storedView) ? storedView : VIEWS[0].key;
+  let showDetail = localStorage.getItem(DETAIL_STORAGE_KEY) !== "false";
 
   function currentSize() {
     return sizes[selectedIndex];
+  }
+
+  // Whether the page shows every size at once: the table view with detail
+  // off. The chart always shows one size, so the checkbox only applies to the
+  // table.
+  function isAllSizes() {
+    return !showDetail && selectedView === "table";
+  }
+
+  // What the legend and its head rules work over: the slider's size, or
+  // every size at once.
+  function legendSize() {
+    return isAllSizes() ? everySize : currentSize();
   }
 
   // The slider position for a size name: that size if it's listed, otherwise
@@ -239,7 +288,7 @@
   function setAllSeriesShown(shown) {
     if (shown) {
       hiddenSeries.clear();
-      currentSize().groups.forEach(showGroup);
+      legendSize().groups.forEach(showGroup);
     } else {
       pemStandoffSeries.forEach((series) => hiddenSeries.add(series.key));
     }
@@ -393,6 +442,10 @@
 
   // Redraws whichever view is on screen, plus the title and notes they share.
   function renderPlot() {
+    if (isAllSizes()) {
+      renderAllSizes();
+      return;
+    }
     const size = currentSize();
     const shownGroups = size.groups.filter(isGroupShown);
     const bands = bandsFor(size);
@@ -406,6 +459,109 @@
     else renderChart(size, shownGroups, bands);
 
     renderNotes(describedSeries(size, shownGroups));
+  }
+
+  // --- Every size at once (I Crave Detail off) ---
+
+  // A table's rows for one material at one size: every thread code the size
+  // covers (M3 and 3.5M3 under M3), in sheet order.
+  function rowsAt(group, sizeName, material) {
+    return group.rows.filter((row) => row.size === sizeName && row.material === material);
+  }
+
+  // The distinct printed torques among some rows, in sheet order.
+  function distinctTorques(rows) {
+    const torques = [];
+    rows.forEach((row) => {
+      if (!torques.includes(row.torque)) torques.push(row.torque);
+    });
+    return torques;
+  }
+
+  // The table with every size at once: a row per shown table and material,
+  // with the max. torque split into one column per size.
+  function renderAllSizes() {
+    const shownGroups = everySize.groups.filter(isGroupShown);
+
+    plotTitleEl.textContent =
+      shownGroups.length === 1 ? shownGroups[0].series.title : "PEM® Standoffs";
+
+    renderAllSizesTable(shownGroups);
+    renderNotes(describedSeries(everySize, shownGroups));
+  }
+
+  function renderAllSizesTable(shownGroups) {
+    tableWrapEl.innerHTML = "";
+
+    if (!shownGroups.length) {
+      const empty = document.createElement("p");
+      empty.className = "plot-empty pem-table-empty";
+      empty.textContent = EMPTY_MESSAGE;
+      tableWrapEl.appendChild(empty);
+    } else {
+      const table = document.createElement("table");
+      table.className = "est-table pem-table";
+
+      const thead = document.createElement("thead");
+      const top = document.createElement("tr");
+      top.appendChild(headerCell(["Series"], { rowspan: "2", scope: "col" }));
+      top.appendChild(headerCell(["Material"], { rowspan: "2", scope: "col" }));
+      top.appendChild(
+        headerCell(["Type"], { rowspan: "2", scope: "col", class: "est-col-divide" })
+      );
+      top.appendChild(
+        headerCell(["Max. Torque (Nm)"], { colspan: String(sizes.length), scope: "colgroup" })
+      );
+      thead.appendChild(top);
+      const bottom = document.createElement("tr");
+      sizes.forEach((size) =>
+        bottom.appendChild(headerCell([size.size], { scope: "col", class: "pem-col-strength" }))
+      );
+      thead.appendChild(bottom);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      shownGroups.forEach((group) => {
+        const series = group.series;
+        const materials = shownMaterials(group);
+        materials.forEach((name, m) => {
+          const tr = document.createElement("tr");
+          if (m === 0) {
+            tr.className = "est-group-start";
+            tr.appendChild(
+              cell("th", series.label, {
+                scope: "rowgroup",
+                rowspan: String(materials.length),
+                class: "est-row-size pem-row-series",
+              })
+            );
+          }
+          tr.appendChild(cell("th", name, { scope: "row", class: "est-row-label pem-row-part" }));
+          tr.appendChild(
+            cell("td", typesFor(series, name).join(" / "), {
+              class: "pem-row-text est-col-divide",
+            })
+          );
+          sizes.forEach((size) => {
+            const torques = distinctTorques(rowsAt(group, size.size, name));
+            const td = cell("td", torques.length ? torques.join(" / ") : shown(null), {
+              class: "pem-col-strength",
+            });
+            if (!torques.length) td.classList.add("pem-cell-none");
+            tr.appendChild(td);
+          });
+          tbody.appendChild(tr);
+        });
+      });
+      table.appendChild(tbody);
+      tableWrapEl.appendChild(table);
+    }
+
+    renderPlotLegend(tableLegendEl, {
+      legendItems: buildLegendItems(everySize, true),
+      legendSlots: allMaterials.length,
+      legendActions: LEGEND_ACTIONS,
+    });
   }
 
   function renderChart(size, shownGroups, bands) {
@@ -634,9 +790,29 @@
     );
     const items = [
       "Torques are the maximum recommended tightening torque for the mating screw.",
-      `Each bar's tooltip (and the table) also gives the standoff's torque-out, ` +
-        `pushout and pull-thru in its test sheets: ${sheets.join("; ")}.`,
     ];
+    if (!isAllSizes()) {
+      items.push(
+        `Each bar's tooltip (and the table) also gives the standoff's torque-out, ` +
+          `pushout and pull-thru in its test sheets: ${sheets.join("; ")}.`
+      );
+    } else {
+      // The thread codes sharing another size's column (3.5M3 under M3).
+      const merged = [];
+      seriesList.forEach((series) => {
+        series.rows.forEach((row) => {
+          const text = `${row.thread} under ${row.size}`;
+          if (row.thread !== row.size && !merged.includes(text)) merged.push(text);
+        });
+      });
+      if (merged.length) {
+        items.push(`A size includes its larger-body thread codes (${joinList(merged)}).`);
+      }
+      items.push(
+        `Tick "I Crave Detail!" for one size at a time with the standoff's ` +
+          `torque-out, pushout and pull-thru in its test sheets: ${sheets.join("; ")}.`
+      );
+    }
     const owners = new Map();
     seriesList.forEach((series) => {
       series.footnotes.forEach((note) => {
@@ -680,10 +856,29 @@
     tableViewEl.hidden = selectedView !== "table";
   }
 
+  // The checkbox is only offered in the table view (hidden, not removed, so
+  // the slider doesn't change width between views). With every size shown
+  // the slider's size doesn't apply: hide its knob and readout (see
+  // .is-all-sizes in style.css) and disable it.
+  function syncDetail() {
+    detailToggleEl.checked = showDetail;
+    detailToggleEl.closest(".detail-toggle").classList.toggle("is-hidden", selectedView !== "table");
+    sliderBlockEl.classList.toggle("is-all-sizes", isAllSizes());
+    sliderEl.disabled = isAllSizes() || sizes.length === 1;
+  }
+
+  function setDetail(on) {
+    showDetail = on;
+    localStorage.setItem(DETAIL_STORAGE_KEY, String(on));
+    syncDetail();
+    renderPlot();
+  }
+
   function setView(key) {
     selectedView = key;
     localStorage.setItem(VIEW_STORAGE_KEY, key);
     syncView();
+    syncDetail();
     renderPlot();
   }
 
@@ -707,6 +902,9 @@
   buildSlider();
   buildViewToggle();
   syncView();
+  syncDetail();
+
+  detailToggleEl.addEventListener("change", () => setDetail(detailToggleEl.checked));
 
   sliderEl.addEventListener("input", () => {
     pickIndex(Number(sliderEl.value));
@@ -715,6 +913,7 @@
   sliderEl.addEventListener(
     "wheel",
     (evt) => {
+      if (sliderEl.disabled) return;
       evt.preventDefault();
       pickIndex(selectedIndex + (evt.deltaY > 0 ? -1 : 1));
     },

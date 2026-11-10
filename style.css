@@ -947,6 +947,30 @@ a.fc-result .fc-result-label {
   outline-offset: 2px;
 }
 
+/* A slider block whose page is showing every size at once (the PEM standoff
+   page with "I Crave Detail!" off): the knob and the size readout are hidden,
+   not removed, so the track and the checkbox beside it don't move when detail
+   comes back on. The JS also disables the input. */
+.detail-toggle.is-hidden {
+  visibility: hidden;
+}
+
+.slider-block.is-all-sizes .size-readout {
+  visibility: hidden;
+}
+
+.slider-block.is-all-sizes .size-slider {
+  cursor: default;
+}
+
+.slider-block.is-all-sizes .size-slider::-webkit-slider-thumb {
+  opacity: 0;
+}
+
+.slider-block.is-all-sizes .size-slider::-moz-range-thumb {
+  opacity: 0;
+}
+
 .slider-ticks {
   position: relative;
   z-index: 1;
