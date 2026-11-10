@@ -123,7 +123,7 @@ const pemNutSeries = [
       { partNumber: "SP-M2.5-1", size: "M2.5", diameter: 2.5, minAxialStrength: "4.14", screwStrength: "1220", torque: ["0.31", "0.38", "0.57", "0.82", "0.92", "1.20", "1.40"] },
       { partNumber: "SP-M2.5-2", size: "M2.5", diameter: 2.5, minAxialStrength: "4.14", screwStrength: "1220", torque: ["0.31", "0.38", "0.57", "0.82", "0.92", "1.20", "1.40"] },
       { partNumber: "SP-M3-0", size: "M3", diameter: 3, minAxialStrength: "5.09", screwStrength: "1220", torque: ["0.45", "0.56", "0.85", "1.20", "1.35", "1.77", "2.07"] },
-      { partNumber: "SP-M3-1", size: "M3", diameter: 3, minAxialStrength: "5.65", screwStrength: "1220", torque: ["0.50", "0.62", "0.94", "1.33", "1.50", "1.96", "2.29"] },
+      { partNumber: "SP-M3-1", size: "M3", diameter: 3, minAxialStrength: "5.65", screwStrength: "1220", torque: ["0.50", "0.63", "0.94", "1.33", "1.50", "1.96", "2.29"] },
       { partNumber: "SP-M3-2", size: "M3", diameter: 3, minAxialStrength: "6.14", screwStrength: "1220", torque: ["0.54", "0.68", "1.02", "1.45", "1.63", "2.13", "2.49"] },
       { partNumber: "SP-M3.5-0", size: "M3.5", diameter: 3.5, minAxialStrength: "5.63", screwStrength: "1220", torque: ["0.58", "0.73", "1.09", "1.55", "1.74", "2.28", "2.66"] },
       { partNumber: "SP-M3.5-1", size: "M3.5", diameter: 3.5, minAxialStrength: "6.29", screwStrength: "1220", torque: ["0.65", "0.81", "1.22", "1.73", "1.95", "2.54", "2.98"] },
