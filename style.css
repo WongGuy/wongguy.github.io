@@ -20,6 +20,8 @@
   --series-3: #1D7A4D;
   --series-4: #7B3FA0;
   --series-5: #A87400;
+  --series-6: #B8336A;
+  --series-7: #3F6B78;
   --plot-grid: #D7DEE3;
   /* Fills for the bolt size estimation table: the header rows, the recommended
      cell, and the header of a property class that has no size to recommend. */
@@ -45,6 +47,8 @@
   --series-3: #56CE92;
   --series-4: #C48CE6;
   --series-5: #E0BE55;
+  --series-6: #F27AA8;
+  --series-7: #8FC3D1;
   --plot-grid: #2C3F4D;
   --est-head-bg: #1E2E3B;
   --pick-bg: #1F4B2C;
@@ -973,6 +977,104 @@ a.fc-result .fc-result-label {
    thumb clips their end labels when it sits near the track ends. */
 .size-slider + .slider-endpoints {
   margin-top: 1rem;
+}
+
+/* --- Two-knob range slider (pem-nut-torque.html's thread size plot)
+   Two .size-slider inputs stacked on one track, so each knob looks and
+   behaves like the μ_min slider's. Only the thumbs take the pointer, so
+   either knob can be grabbed through the other input. The lower input draws
+   the track: dim outside the knobs, solid between them, with --lo / --hi
+   (0-1, set by the app) placed the way the thumb centers are, inset by half
+   a thumb at each end. The upper input's track is transparent. */
+.range-slider-block {
+  margin-bottom: 1rem;
+}
+
+.range-readout {
+  width: 6rem;
+  color: var(--text);
+}
+
+/* Both inputs share one grid cell, so they overlap exactly. A lone
+   .size-slider is an inline box sitting on its line's baseline, about 11px
+   down a 21px line; the margins rebuild that spacing so the knobs clear the
+   readout the same way the μ_min slider's do. The bottom margin is 6px more
+   than a lone slider's, for the lower knob's drop (below). */
+.range-slider {
+  display: grid;
+  --knob-stagger: 6px;
+}
+
+.range-slider .size-slider {
+  grid-area: 1 / 1;
+  margin: 11px 0 10px;
+  pointer-events: none;
+}
+
+.range-slider .range-slider-hi {
+  z-index: 3;
+}
+
+/* The knobs are staggered evenly about the track, the upper one raised and
+   the lower one dropped by --knob-stagger, so when the two meet they read as
+   two offset rectangles rather than one. Only the thumbs move: -14px is the
+   margin that centers a 34px thumb on the 6px track (see .size-slider). */
+.range-slider .range-slider-hi::-webkit-slider-thumb {
+  margin-top: calc(-14px - var(--knob-stagger));
+}
+
+.range-slider .range-slider-lo::-webkit-slider-thumb {
+  margin-top: calc(-14px + var(--knob-stagger));
+}
+
+.range-slider .range-slider-hi::-moz-range-thumb {
+  transform: translateY(calc(-1 * var(--knob-stagger)));
+}
+
+.range-slider .range-slider-lo::-moz-range-thumb {
+  transform: translateY(var(--knob-stagger));
+}
+
+/* Both knobs parked at the top end: the lower one goes on top, or it could
+   never be dragged back down past the upper one. */
+.range-slider .range-slider-lo.is-raised {
+  z-index: 4;
+}
+
+.range-slider .size-slider::-webkit-slider-thumb {
+  pointer-events: auto;
+}
+
+.range-slider .size-slider::-moz-range-thumb {
+  pointer-events: auto;
+}
+
+.range-slider .range-slider-lo::-webkit-slider-runnable-track {
+  background: linear-gradient(
+    to right,
+    var(--panel-border) calc(var(--thumb-width) / 2 + (100% - var(--thumb-width)) * var(--lo, 0)),
+    var(--text) 0,
+    var(--text) calc(var(--thumb-width) / 2 + (100% - var(--thumb-width)) * var(--hi, 1)),
+    var(--panel-border) 0
+  );
+}
+
+.range-slider .range-slider-lo::-moz-range-track {
+  background: linear-gradient(
+    to right,
+    var(--panel-border) calc(var(--thumb-width) / 2 + (100% - var(--thumb-width)) * var(--lo, 0)),
+    var(--text) 0,
+    var(--text) calc(var(--thumb-width) / 2 + (100% - var(--thumb-width)) * var(--hi, 1)),
+    var(--panel-border) 0
+  );
+}
+
+.range-slider .range-slider-hi::-webkit-slider-runnable-track {
+  background: transparent;
+}
+
+.range-slider .range-slider-hi::-moz-range-track {
+  background: transparent;
 }
 
 /* --- Plot (see plot.js for the renderer this styles) --- */

@@ -38,6 +38,23 @@
 // into the title. The rule is the checkbox count, not how many categories
 // survive trimming, so toggling a table never flips the chart type.
 //
+// TORQUE BY THREAD SIZE
+//
+// With exactly one grade ticked, a second plot comes up under the grade
+// list: the same torque axis against thread size, every size at once (the
+// slider doesn't move it). A part number only exists at one size, so this
+// plot works in part families instead — the part number with its size taken
+// out, "S-M*-0ZI" — one dot series per family, in its table's marker and its
+// color on that table's legend line. Its legend is built the way the one
+// above is (a line per table, its families after the head, the same head and
+// "Check all" rules, fixed cells), but it's its own: kept apart from the
+// legend above and remembered separately, so the two plots can show different
+// tables. It has its own Chart | Table toggle too; its table is a row per
+// shown family and a column per size. A two-knob slider at the top of its
+// group picks the smallest and largest size it spans (both views); families
+// with no torque inside that span are grayed out in its legend. See
+// renderSizePlot().
+//
 // LEGEND
 //
 // One line per PEM table, headed by a checkbox with the table's label ("S",
@@ -101,8 +118,25 @@
   const tableLegendEl = document.getElementById("torque-table-legend");
   const gradeTogglesEl = document.getElementById("grade-toggles");
   const gradeCommonEl = document.getElementById("grade-common");
+  const sizePlotGroupEl = document.getElementById("size-plot-group");
+  const sizePlotTitleEl = document.getElementById("size-plot-title");
+  const sizePlotEl = document.getElementById("size-plot");
+  const sizeViewToggleEl = document.getElementById("size-view-toggle");
+  const sizeTableViewEl = document.getElementById("size-table-view");
+  const sizeTableWrapEl = document.getElementById("size-table-wrap");
+  const sizeTableLegendEl = document.getElementById("size-table-legend");
+  const rangeLoEl = document.getElementById("size-range-lo");
+  const rangeHiEl = document.getElementById("size-range-hi");
+  const rangeReadoutEl = document.getElementById("size-range-readout");
+  const rangeTicksEl = document.getElementById("size-range-ticks");
+  const rangeMinLabelEl = document.getElementById("size-range-min-label");
+  const rangeMaxLabelEl = document.getElementById("size-range-max-label");
 
   const SIZE_STORAGE_KEY = "pemNutTorqueSize";
+  const SIZE_PLOT_HIDDEN_SERIES_STORAGE_KEY = "pemNutTorqueSizePlotHiddenSeries";
+  const SIZE_PLOT_HIDDEN_STORAGE_KEY = "pemNutTorqueSizePlotHidden";
+  const SIZE_PLOT_VIEW_STORAGE_KEY = "pemNutTorqueSizePlotView";
+  const SIZE_PLOT_RANGE_STORAGE_KEY = "pemNutTorqueSizePlotRange";
   const VIEW_STORAGE_KEY = "pemNutTorqueView";
   const HIDDEN_STORAGE_KEY = "pemNutTorqueHidden";
   const HIDDEN_SERIES_STORAGE_KEY = "pemNutTorqueHiddenSeries";
@@ -142,7 +176,9 @@
   // no table lists more than four parts at one size, so colors never repeat
   // within a line. They do repeat across tables, so tables are told apart by
   // marker instead (below).
-  const SERIES_COLOR_COUNT = 5;
+  // Seven colors: the thread size plot's legend lines run up to seven part
+  // families (S), where the size legend above never passes four parts.
+  const SERIES_COLOR_COUNT = 7;
   const colorFor = (i) => `var(--series-${(i % SERIES_COLOR_COUNT) + 1})`;
 
   // Each table's marker: five shapes, filled for the first five tables and
@@ -218,9 +254,38 @@
   const hiddenSeries = getStoredSet(HIDDEN_SERIES_STORAGE_KEY) || defaultHiddenSeries();
   const hiddenParts = getStoredSet(HIDDEN_STORAGE_KEY) || new Set();
   const hiddenGrades = getStoredSet(HIDDEN_GRADES_STORAGE_KEY) || new Set();
+  // The thread size plot's own selection, independent of the legend above but
+  // following the same rules: tables and part families kept separately, and
+  // a first visit starting with one table on.
+  const sizePlotHiddenSeries =
+    getStoredSet(SIZE_PLOT_HIDDEN_SERIES_STORAGE_KEY) || defaultHiddenSeries();
+  const sizePlotHiddenFamilies = getStoredSet(SIZE_PLOT_HIDDEN_STORAGE_KEY) || new Set();
   let selectedIndex = 0;
-  const storedView = localStorage.getItem(VIEW_STORAGE_KEY);
-  let selectedView = VIEWS.some((v) => v.key === storedView) ? storedView : VIEWS[0].key;
+  function storedViewFor(key) {
+    const stored = localStorage.getItem(key);
+    return VIEWS.some((v) => v.key === stored) ? stored : VIEWS[0].key;
+  }
+  let selectedView = storedViewFor(VIEW_STORAGE_KEY);
+  let sizePlotView = storedViewFor(SIZE_PLOT_VIEW_STORAGE_KEY);
+  // The thread size plot's size range, as slider positions into `sizes`:
+  // every size unless a narrower range was picked before. Stored by size name,
+  // so a range survives sizes being added to the data.
+  let rangeLo = 0;
+  let rangeHi = sizes.length - 1;
+  (function () {
+    try {
+      const stored = JSON.parse(localStorage.getItem(SIZE_PLOT_RANGE_STORAGE_KEY));
+      if (!Array.isArray(stored) || stored.length !== 2) return;
+      const lo = indexForSize(stored[0]);
+      const hi = indexForSize(stored[1]);
+      if (lo <= hi) {
+        rangeLo = lo;
+        rangeHi = hi;
+      }
+    } catch (err) {
+      // Nothing usable stored: keep the full range.
+    }
+  })();
 
   function currentSize() {
     return sizes[selectedIndex];
@@ -405,18 +470,74 @@
     minLabelEl.textContent = sizes[0].size;
     maxLabelEl.textContent = sizes[maxIndex].size;
 
-    // The thumb's travel is inset by half its width on each side (a range
-    // input centers the thumb within the track, it doesn't run edge-to-edge),
-    // so ticks must be offset the same way to line up with the thumb center.
-    ticksEl.innerHTML = "";
+    buildTicks(ticksEl);
+  }
+
+  // A tick per size under a slider. The thumb's travel is inset by half its
+  // width on each side (a range input centers the thumb within the track, it
+  // doesn't run edge-to-edge), so ticks must be offset the same way to line
+  // up with the thumb center.
+  function buildTicks(el) {
+    const maxIndex = sizes.length - 1;
+    el.innerHTML = "";
     const thumbWidth = getThumbWidth();
     sizes.forEach((s, i) => {
       const tick = document.createElement("div");
       tick.className = "slider-tick";
       const fraction = maxIndex > 0 ? i / maxIndex : 0.5;
       tick.style.left = `calc(${thumbWidth / 2}px + (100% - ${thumbWidth}px) * ${fraction})`;
-      ticksEl.appendChild(tick);
+      el.appendChild(tick);
     });
+  }
+
+  // --- Thread size range (the thread size plot's two-knob slider) ---
+
+  // The sizes the thread size plot spans, smallest to largest.
+  function rangeSizes() {
+    return sizes.slice(rangeLo, rangeHi + 1);
+  }
+
+  function buildRangeSlider() {
+    const maxIndex = String(sizes.length - 1);
+    [rangeLoEl, rangeHiEl].forEach((input) => {
+      input.max = maxIndex;
+      input.disabled = sizes.length < 2;
+    });
+    rangeMinLabelEl.textContent = sizes[0].size;
+    rangeMaxLabelEl.textContent = sizes[sizes.length - 1].size;
+    buildTicks(rangeTicksEl);
+    syncRangeSlider();
+  }
+
+  // Knob positions, the readout, and the solid stretch of track between the
+  // knobs (--lo / --hi, see .range-slider in style.css).
+  function syncRangeSlider() {
+    const maxIndex = sizes.length - 1;
+    rangeLoEl.value = String(rangeLo);
+    rangeHiEl.value = String(rangeHi);
+    rangeReadoutEl.textContent =
+      rangeLo === rangeHi ? sizes[rangeLo].size : `${sizes[rangeLo].size} – ${sizes[rangeHi].size}`;
+    rangeLoEl.style.setProperty("--lo", maxIndex > 0 ? rangeLo / maxIndex : 0);
+    rangeLoEl.style.setProperty("--hi", maxIndex > 0 ? rangeHi / maxIndex : 1);
+    rangeLoEl.classList.toggle("is-raised", rangeLo === maxIndex);
+  }
+
+  // A knob moved. A knob dragged past the other pushes it along rather than
+  // stopping at it, so the range can narrow to a single size but never turn
+  // inside out. `moved` says which knob the visitor has hold of.
+  function setRange(lo, hi, moved) {
+    rangeLo = Math.max(0, Math.min(lo, sizes.length - 1));
+    rangeHi = Math.max(0, Math.min(hi, sizes.length - 1));
+    if (rangeLo > rangeHi) {
+      if (moved === "lo") rangeHi = rangeLo;
+      else rangeLo = rangeHi;
+    }
+    syncRangeSlider();
+    localStorage.setItem(
+      SIZE_PLOT_RANGE_STORAGE_KEY,
+      JSON.stringify([sizes[rangeLo].size, sizes[rangeHi].size])
+    );
+    renderSizePlot(singleGrade());
   }
 
   // --- Plot ---
@@ -530,6 +651,7 @@
       renderChart(size, shownGroups, materials, shownParts, emptyMessage);
     }
 
+    renderSizePlot(grade);
     renderNotes(described);
   }
 
@@ -637,6 +759,331 @@
         `, ${size.size}, ${series.length} part numbers`,
       formatTooltip: tooltipLines,
       emptyMessage: emptyMessage,
+    });
+  }
+
+  // --- Torque by thread size ---
+
+  // Every table's part families: its part numbers with the thread size taken
+  // out (S-M3-0ZI, S-M4-0ZI, ... -> "S-M*-0ZI"; S-RTM3-0ZI -> "S-RTM*-0ZI"),
+  // in the order the sheet first lists them. A family is one variant of the
+  // nut across the sizes it's made in, so it's what the thread size plot
+  // draws as a series and lists in its legend — the plot spans every size,
+  // where a single part number only exists at one.
+  const familiesBySeries = new Map();
+  pemNutSeries.forEach((series) => {
+    const byLabel = new Map();
+    series.parts.forEach((part) => {
+      const label = part.partNumber.replace(part.size, "M*");
+      if (!byLabel.has(label)) {
+        byLabel.set(label, { key: `${series.key}:${label}`, label: label, parts: new Map() });
+      }
+      byLabel.get(label).parts.set(part.size, part);
+    });
+    familiesBySeries.set(series.key, Array.from(byLabel.values()));
+  });
+
+  // The thread size legend's cells per row: as many as the most families any
+  // table has, but no more than four, so the family names fit uncut. A table
+  // with more (S and CLS have seven) wraps onto a second row of the same
+  // cells. Every line is always passed with all its families, so the legend
+  // still keeps one size whatever is ticked.
+  const SIZE_PLOT_LEGEND_MAX_SLOTS = 4;
+  const sizePlotLegendSlots = Math.min(
+    SIZE_PLOT_LEGEND_MAX_SLOTS,
+    Array.from(familiesBySeries.values()).reduce(
+      (max, families) => Math.max(max, families.length),
+      1
+    )
+  );
+
+  // A family's torque at one size and grade, as printed, or null when the
+  // family isn't made in that size or its table prints no torque there.
+  function familyTorque(series, family, size, grade) {
+    const part = family.parts.get(size);
+    const m = series.materials.indexOf(grade);
+    if (!part || m < 0 || !Number.isFinite(parseFloat(part.torque[m]))) return null;
+    return part.torque[m];
+  }
+
+  // The families a table offers at the grade: those with a torque at a size
+  // in the range slider's span. The rest are grayed out in the legend, as the
+  // legend above grays out a table that doesn't list the size.
+  function offeredFamilies(series, grade) {
+    return familiesBySeries
+      .get(series.key)
+      .filter((family) =>
+        rangeSizes().some((size) => familyTorque(series, family, size.size, grade))
+      );
+  }
+
+  function isFamilyShown(series, family) {
+    return !sizePlotHiddenSeries.has(series.key) && !sizePlotHiddenFamilies.has(family.key);
+  }
+
+  function saveSizePlotHidden() {
+    localStorage.setItem(
+      SIZE_PLOT_HIDDEN_SERIES_STORAGE_KEY,
+      JSON.stringify(Array.from(sizePlotHiddenSeries))
+    );
+    localStorage.setItem(
+      SIZE_PLOT_HIDDEN_STORAGE_KEY,
+      JSON.stringify(Array.from(sizePlotHiddenFamilies))
+    );
+  }
+
+  // The same head rules as the legend above (see LEGEND), over a table's
+  // families at the grade rather than its parts at the size.
+  function showSizePlotSeries(series, grade) {
+    sizePlotHiddenSeries.delete(series.key);
+    const offered = offeredFamilies(series, grade);
+    if (!offered.some((family) => !sizePlotHiddenFamilies.has(family.key))) {
+      offered.forEach((family) => sizePlotHiddenFamilies.delete(family.key));
+    }
+  }
+
+  function setSizePlotSeriesShown(series, shown) {
+    if (shown) showSizePlotSeries(series, singleGrade());
+    else sizePlotHiddenSeries.add(series.key);
+    saveSizePlotHidden();
+    renderSizePlot(singleGrade());
+  }
+
+  function setAllSizePlotSeriesShown(shown) {
+    const grade = singleGrade();
+    pemNutSeries.forEach((series) => {
+      if (shown) showSizePlotSeries(series, grade);
+      else sizePlotHiddenSeries.add(series.key);
+    });
+    saveSizePlotHidden();
+    renderSizePlot(grade);
+  }
+
+  function setFamilyShown(series, family, shown) {
+    if (shown) {
+      sizePlotHiddenFamilies.delete(family.key);
+      if (sizePlotHiddenSeries.has(series.key)) {
+        sizePlotHiddenSeries.delete(series.key);
+        familiesBySeries.get(series.key).forEach((other) => {
+          if (other !== family) sizePlotHiddenFamilies.add(other.key);
+        });
+      }
+    } else {
+      sizePlotHiddenFamilies.add(family.key);
+    }
+    saveSizePlotHidden();
+    renderSizePlot(singleGrade());
+  }
+
+  const SIZE_PLOT_LEGEND_ACTIONS = [
+    { key: "check-all", label: "Check all series", onClick: () => setAllSizePlotSeriesShown(true) },
+    { key: "uncheck-all", label: "Uncheck all series", onClick: () => setAllSizePlotSeriesShown(false) },
+  ];
+
+  // Built like buildLegendItems: a line per table, always, headed by the
+  // table's checkbox and followed by its families. A table with no torque at
+  // the grade is grayed out with its head locked; so is a family. `swatches`
+  // is "markers" for the plot and "none" for the table view.
+  function buildSizePlotLegendItems(grade, swatches) {
+    return pemNutSeries.map((series) => {
+      const offered = offeredFamilies(series, grade);
+      const marker = markerFor(series);
+      const head = swatches === "markers" ? { shape: marker.shape, hollow: marker.hollow } : {};
+      return Object.assign(head, {
+        key: `series:${series.key}`,
+        label: series.label,
+        active: offered.length
+          ? offered.some((family) => isFamilyShown(series, family))
+          : !sizePlotHiddenSeries.has(series.key),
+        disabled: !offered.length,
+        onToggle: offered.length ? (checked) => setSizePlotSeriesShown(series, checked) : () => {},
+        items: familiesBySeries.get(series.key).map((family, i) => {
+          const isOffered = offered.includes(family);
+          return Object.assign(swatches === "none" ? {} : { color: colorFor(i) }, {
+            key: family.key,
+            label: family.label,
+            active: isFamilyShown(series, family),
+            disabled: !isOffered,
+            onToggle: isOffered ? (checked) => setFamilyShown(series, family, checked) : () => {},
+          });
+        }),
+      });
+    });
+  }
+
+  // The second plot, shown only with exactly one grade ticked: that grade's
+  // torque across every thread size, one dot series per part family in its
+  // table's marker and its color on that table's legend line — the same look
+  // as the plot above, with part families in place of part numbers. It's
+  // switched from its own legend under it, not the one above, and the slider
+  // doesn't move it. The x axis is the sizes a shown family has a torque at;
+  // within each size's band the families there are dodged side by side, as
+  // the plot above dodges parts within a material's band.
+  function renderSizePlot(grade) {
+    sizePlotGroupEl.hidden = !grade;
+    if (!grade) return;
+
+    // Shown families with a torque at the grade, in table order.
+    const shown = [];
+    pemNutSeries.forEach((series) => {
+      familiesBySeries.get(series.key).forEach((family, i) => {
+        if (!isFamilyShown(series, family)) return;
+        if (!rangeSizes().some((size) => familyTorque(series, family, size.size, grade))) return;
+        shown.push({ series: series, family: family, color: colorFor(i) });
+      });
+    });
+    const columns = rangeSizes().filter((size) =>
+      shown.some((entry) => familyTorque(entry.series, entry.family, size.size, grade))
+    );
+
+    const plottedSeries = pemNutSeries.filter((series) => shown.some((e) => e.series === series));
+    sizePlotTitleEl.textContent =
+      (plottedSeries.length === 1 ? plottedSeries[0].title : "PEM® Nuts") +
+      ` by Thread Size, ${grade} Screw`;
+
+    const span = rangeSizes();
+    const spanText =
+      span.length === 1 ? `at ${span[0].size}` : `from ${span[0].size} to ${span[span.length - 1].size}`;
+    const anySelected = pemNutSeries.some((series) =>
+      familiesBySeries.get(series.key).some((family) => isFamilyShown(series, family))
+    );
+    const emptyMessage = anySelected
+      ? `No torque listed for ${grade} in the selected series ${spanText}`
+      : EMPTY_MESSAGE.replace(" at this size", "");
+
+    if (sizePlotView === "table") {
+      renderSizeTable(grade, shown, columns, emptyMessage);
+      return;
+    }
+
+    // Each size's band dodges just the families present at that size.
+    const slots = new Map();
+    columns.forEach((size) => {
+      const present = shown.filter((e) => familyTorque(e.series, e.family, size.size, grade));
+      present.forEach((entry, j) => {
+        slots.set(`${entry.family.key}@${size.size}`, dodge(j, present.length));
+      });
+    });
+
+    const series = shown.map((entry) => {
+      const marker = markerFor(entry.series);
+      const points = [];
+      columns.forEach((size, c) => {
+        const torque = familyTorque(entry.series, entry.family, size.size, grade);
+        if (!torque) return;
+        points.push({
+          x: c + slots.get(`${entry.family.key}@${size.size}`),
+          y: parseFloat(torque),
+          torque: torque,
+          material: grade,
+          part: entry.family.parts.get(size.size),
+        });
+      });
+      return {
+        key: entry.family.key,
+        label: entry.family.label,
+        color: entry.color,
+        shape: marker.shape,
+        hollow: marker.hollow,
+        line: false,
+        points: points,
+      };
+    });
+
+    renderLinePlot(sizePlotEl, {
+      title: sizePlotTitleEl.textContent,
+      series: series,
+      legendItems: buildSizePlotLegendItems(grade, "markers"),
+      legendSlots: sizePlotLegendSlots,
+      legendActions: SIZE_PLOT_LEGEND_ACTIONS,
+      xCategories: columns.map((size) => size.size),
+      xLabel: "Thread Size",
+      yLabel: "Mating Screw Tightening Torque (Nm)",
+      ariaLabel:
+        `Mating screw tightening torque with a ${grade} screw by thread size for PEM ` +
+        (plottedSeries.length ? `${joinList(plottedSeries.map((s) => s.label))} ` : "") +
+        `nuts, ${series.length} part families`,
+      formatTooltip: (point) => tooltipLines(point, { label: point.part.partNumber }),
+      emptyMessage: emptyMessage,
+    });
+  }
+
+  // The thread size plot's values as a table: one row per shown part family,
+  // grouped by table as in the table view above, and one torque column per
+  // size on the plot's axis (a dash where the family isn't made in it).
+  function renderSizeTable(grade, shown, columns, emptyMessage) {
+    sizeTableWrapEl.innerHTML = "";
+
+    if (!shown.length) {
+      const empty = document.createElement("p");
+      empty.className = "plot-empty pem-table-empty";
+      empty.textContent = emptyMessage;
+      sizeTableWrapEl.appendChild(empty);
+    } else {
+      const table = document.createElement("table");
+      table.className = "est-table pem-table";
+
+      const thead = document.createElement("thead");
+      const top = document.createElement("tr");
+      top.appendChild(headerCell(["Series"], { rowspan: "2", scope: "col" }));
+      top.appendChild(
+        headerCell(["Part No."], { rowspan: "2", scope: "col", class: "est-col-divide" })
+      );
+      top.appendChild(
+        headerCell([`Mating Screw Tightening Torque, ${grade} Screw (Nm)`], {
+          colspan: String(columns.length),
+          scope: "colgroup",
+        })
+      );
+      thead.appendChild(top);
+      const bottom = document.createElement("tr");
+      columns.forEach((size) => bottom.appendChild(headerCell([size.size], { scope: "col" })));
+      thead.appendChild(bottom);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      shown.forEach((entry, j) => {
+        const tr = document.createElement("tr");
+        if (j === 0 || shown[j - 1].series !== entry.series) {
+          tr.className = "est-group-start";
+          const seriesCell = document.createElement("th");
+          seriesCell.className = "est-row-size pem-row-series";
+          seriesCell.setAttribute("scope", "rowgroup");
+          seriesCell.setAttribute(
+            "rowspan",
+            String(shown.filter((e) => e.series === entry.series).length)
+          );
+          seriesCell.textContent = entry.series.label;
+          tr.appendChild(seriesCell);
+        }
+
+        const familyCell = document.createElement("th");
+        familyCell.className = "est-row-label pem-row-part est-col-divide";
+        familyCell.setAttribute("scope", "row");
+        familyCell.textContent = entry.family.label;
+        tr.appendChild(familyCell);
+
+        columns.forEach((size) => {
+          const td = document.createElement("td");
+          const torque = familyTorque(entry.series, entry.family, size.size, grade);
+          if (torque) {
+            td.textContent = torque;
+          } else {
+            td.textContent = "—";
+            td.className = "pem-cell-none";
+          }
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+      sizeTableWrapEl.appendChild(table);
+    }
+
+    renderPlotLegend(sizeTableLegendEl, {
+      legendItems: buildSizePlotLegendItems(grade, "none"),
+      legendSlots: sizePlotLegendSlots,
+      legendActions: SIZE_PLOT_LEGEND_ACTIONS,
     });
   }
 
@@ -798,28 +1245,35 @@
 
   // --- Controls ---
 
-  function buildViewToggle() {
+  // A Chart | Table toggle. Both plots have one, each with its own view.
+  function buildViewToggle(toggleEl, onPick) {
     VIEWS.forEach((view) => {
       const button = document.createElement("button");
       button.type = "button";
       button.className = "metric-option";
       button.dataset.view = view.key;
       button.textContent = view.label;
-      button.addEventListener("click", () => setView(view.key));
-      viewToggleEl.appendChild(button);
+      button.addEventListener("click", () => onPick(view.key));
+      toggleEl.appendChild(button);
     });
   }
 
-  // Shows the selected view and hides the other. The view is shown before
-  // it's drawn, so the plot measures its real width rather than a hidden 0.
-  function syncView() {
-    viewToggleEl.querySelectorAll(".metric-option").forEach((button) => {
-      const isActive = button.dataset.view === selectedView;
+  // Shows a toggle's selected view and hides the other. The view is shown
+  // before it's drawn, so the plot measures its real width rather than a
+  // hidden 0.
+  function syncViewToggle(toggleEl, chartEl, tableEl, view) {
+    toggleEl.querySelectorAll(".metric-option").forEach((button) => {
+      const isActive = button.dataset.view === view;
       button.classList.toggle("is-active", isActive);
       button.setAttribute("aria-pressed", isActive ? "true" : "false");
     });
-    plotEl.hidden = selectedView !== "chart";
-    tableViewEl.hidden = selectedView !== "table";
+    chartEl.hidden = view !== "chart";
+    tableEl.hidden = view !== "table";
+  }
+
+  function syncView() {
+    syncViewToggle(viewToggleEl, plotEl, tableViewEl, selectedView);
+    syncViewToggle(sizeViewToggleEl, sizePlotEl, sizeTableViewEl, sizePlotView);
   }
 
   function setView(key) {
@@ -827,6 +1281,13 @@
     localStorage.setItem(VIEW_STORAGE_KEY, key);
     syncView();
     renderPlot();
+  }
+
+  function setSizePlotView(key) {
+    sizePlotView = key;
+    localStorage.setItem(SIZE_PLOT_VIEW_STORAGE_KEY, key);
+    syncView();
+    renderSizePlot(singleGrade());
   }
 
   // Moves the slider to a size and redraws.
@@ -847,11 +1308,16 @@
   window.addEventListener("resize", updateReadoutWidth);
 
   buildSlider();
-  buildViewToggle();
+  buildRangeSlider();
+  buildViewToggle(viewToggleEl, setView);
+  buildViewToggle(sizeViewToggleEl, setSizePlotView);
   buildGradeToggles();
   syncView();
 
   gradeCommonEl.addEventListener("click", showCommonGrades);
+
+  rangeLoEl.addEventListener("input", () => setRange(Number(rangeLoEl.value), rangeHi, "lo"));
+  rangeHiEl.addEventListener("input", () => setRange(rangeLo, Number(rangeHiEl.value), "hi"));
 
   sliderEl.addEventListener("input", () => {
     pickIndex(Number(sliderEl.value));

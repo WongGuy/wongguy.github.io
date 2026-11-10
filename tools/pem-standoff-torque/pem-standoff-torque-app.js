@@ -23,12 +23,14 @@
 // LEGEND
 //
 // One line per PEM table, headed by a checkbox with the table's label ("SO /
-// BSO", "SO4 / BSO4", "DSO"), followed by one checkbox per standoff material —
-// Steel, Stainless (Steel), Aluminum — in the same column on every line. A
-// material the table doesn't list is grayed out and can't be ticked: SO4 /
-// BSO4 are made only in stainless steel, so that line offers Stainless Steel
-// alone. Which materials a table lists comes from the data (and so from the
-// workbook), not from this file.
+// BSO", "SO4 / BSO4", "DSO"), followed by one checkbox per standoff material
+// the table offers at the size — Steel, Stainless (Steel), Aluminum — each in
+// the same column on every line. A material the table doesn't offer isn't
+// shown at all, the way the nut page shows only the parts at the size; its
+// cell is just left empty: SO4 / BSO4 are made only in stainless steel, so
+// that line has Stainless Steel alone, in the Stainless column. Which materials
+// a table lists comes from the data (and so from the workbook), not from this
+// file.
 //
 // The head and the materials work like the nut page's head and part numbers.
 // Unticking a head hides all of its table's materials; ticking it again brings
@@ -43,10 +45,10 @@
 // table's head at once, grayed-out tables included.
 //
 // The legend keeps one size for every slider position: every table always has
-// its line and every line has a cell per material (legendSlots in plot.js). A
-// table that doesn't list the size is grayed out, head and materials locked,
-// showing what's switched on, so it can't be changed at a size where it would
-// do nothing.
+// its line and every line has a cell per material (legendSlots in plot.js), so
+// a line offering fewer materials just has empty cells where the others go. A table that doesn't
+// list the size is grayed out with its head locked, showing whether the table
+// is switched on, so it can't be changed at a size where it would do nothing.
 //
 // CHART / TABLE
 //
@@ -193,10 +195,6 @@
     return material ? material.types : [];
   }
 
-  function isListed(series, name) {
-    return series.materials.some((m) => m.name === name);
-  }
-
   function isMaterialShown(series, name) {
     return !hiddenSeries.has(series.key) && !hiddenMaterials.has(materialKey(series, name));
   }
@@ -339,23 +337,14 @@
   }
 
   // Every table, in table order, whether or not it lists the size — see
-  // LEGEND above. Every line has a cell per material; the ones the table
-  // can't offer here are locked, unticked if the table never lists them.
+  // LEGEND above. A line lists only the materials its table offers at the
+  // size, each in its own column, with a null (an empty cell in plot.js) in
+  // the columns it doesn't offer; a table without the size has a locked head
+  // and no materials.
   // `plain` leaves out the color swatches (the table view's legend).
   function buildLegendItems(size, plain) {
     return pemStandoffSeries.map((series) => {
       const group = size.groups.find((g) => g.series === series);
-      const items = allMaterials.map((name) => {
-        const offered = !!group && group.materials.includes(name);
-        return {
-          key: materialKey(series, name),
-          label: legendLabel(name),
-          color: plain ? undefined : colorFor(name),
-          active: isListed(series, name) && isMaterialShown(series, name),
-          disabled: !offered,
-          onToggle: offered ? (checked) => setMaterialShown(group, name, checked) : () => {},
-        };
-      });
       if (!group) {
         return {
           key: `series:${series.key}`,
@@ -363,7 +352,7 @@
           active: !hiddenSeries.has(series.key),
           disabled: true,
           onToggle: () => {},
-          items: items,
+          items: [],
         };
       }
       return {
@@ -371,7 +360,17 @@
         label: series.label,
         active: isGroupShown(group),
         onToggle: (checked) => setGroupShown(group, checked),
-        items: items,
+        items: allMaterials.map((name) =>
+          group.materials.includes(name)
+            ? {
+                key: materialKey(series, name),
+                label: legendLabel(name),
+                color: plain ? undefined : colorFor(name),
+                active: isMaterialShown(series, name),
+                onToggle: (checked) => setMaterialShown(group, name, checked),
+              }
+            : null
+        ),
       };
     });
   }

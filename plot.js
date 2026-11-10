@@ -71,7 +71,10 @@
 // widening it. Given the same groups and n, the legend is the same size no
 // matter which items are passed — so a caller that wants a stable legend
 // passes every group every time, with `disabled` on the ones that have nothing
-// to offer right now, rather than dropping them.
+// to offer right now, rather than dropping them. A `null` among a group's
+// items is an empty cell, so a caller can keep an item in the same column on
+// every line and leave the cell blank where a group doesn't have it. The
+// image export drops null items like any item that's off.
 //
 // Calling it again on the same container redraws in place, so a page can call
 // it on every control change. The container is measured on each draw and
@@ -301,19 +304,23 @@
       if (isGroup) {
         body.setAttribute("role", "group");
         body.setAttribute("aria-label", item.label);
-        item.items.forEach((child) => body.appendChild(buildLegendItem(container, child)));
+        item.items.forEach((child) => body.appendChild(child ? buildLegendItem(container, child) : emptySlot()));
       } else {
         body.appendChild(buildLegendItem(container, item));
       }
-      while (body.children.length < slots) {
-        const empty = document.createElement("span");
-        empty.className = "plot-legend-slot";
-        body.appendChild(empty);
-      }
+      while (body.children.length < slots) body.appendChild(emptySlot());
       legend.appendChild(body);
     });
     appendLegendActions(container, legend, opts);
     return legend;
+  }
+
+  // An empty legend cell: the padding after a group's items, or a null item
+  // holding a column open.
+  function emptySlot() {
+    const empty = document.createElement("span");
+    empty.className = "plot-legend-slot";
+    return empty;
   }
 
   // The legendActions buttons, on a row of their own under the items. Like a
@@ -524,7 +531,7 @@
       opts.legendItems ||
       drawnSeries.map((s) => ({ key: s.key, label: s.label, color: s.color }));
     const keep = (item) =>
-      item.active !== false && !item.disabled && !item.note && item.exportable !== false;
+      !!item && item.active !== false && !item.disabled && !item.note && item.exportable !== false;
     const grouped = items.some((item) => Array.isArray(item.items));
     if (!grouped) return { grouped: false, items: items.filter(keep) };
     const groups = [];

@@ -72,6 +72,50 @@
           <div id="grade-toggles" class="est-grades" role="group" aria-label="Screw grades"></div>
         </div>
 
+        <div class="spec-group" id="size-plot-group" hidden>
+          <div class="slider-block range-slider-block">
+            <div class="param-readout range-readout">
+              <span id="size-range-readout" aria-live="polite"></span>
+            </div>
+            <div class="slider-track-wrap">
+              <div class="range-slider">
+                <input
+                  type="range"
+                  id="size-range-lo"
+                  class="size-slider range-slider-lo"
+                  min="0"
+                  max="0"
+                  step="1"
+                  value="0"
+                  aria-label="Smallest thread size on the thread size plot"
+                />
+                <input
+                  type="range"
+                  id="size-range-hi"
+                  class="size-slider range-slider-hi"
+                  min="0"
+                  max="0"
+                  step="1"
+                  value="0"
+                  aria-label="Largest thread size on the thread size plot"
+                />
+              </div>
+              <div id="size-range-ticks" class="slider-ticks"></div>
+              <div class="slider-endpoints">
+                <span id="size-range-min-label"></span>
+                <span id="size-range-max-label"></span>
+              </div>
+            </div>
+          </div>
+          <h3 class="spec-group-title" id="size-plot-title">Torque by Thread Size</h3>
+          <div id="size-view-toggle" class="metric-toggle" role="group" aria-label="Thread size view"></div>
+          <div id="size-plot" class="plot"></div>
+          <div id="size-table-view" hidden>
+            <div id="size-table-wrap" class="est-table-wrap"></div>
+            <div id="size-table-legend"></div>
+          </div>
+        </div>
+
         <div class="plot-note">
           <h4>Notes</h4>
           <ul id="series-notes"></ul>
