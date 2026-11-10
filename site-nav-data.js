@@ -34,4 +34,12 @@ const siteNav = [
       { label: "Sheet Metal", href: "sheet-metal.html" },
     ],
   },
+  {
+    label: "PEM",
+    pages: [
+      { label: "PEM Selection", href: "pem-selection.html" },
+      { label: "PEM Nut Torque", href: "pem-nut-torque.html" },
+      { label: "PEM Standoff Torque", href: "pem-standoff-torque.html" },
+    ],
+  },
 ];
