@@ -1053,6 +1053,23 @@ a.fc-result .fc-result-label {
   stroke: var(--text);
 }
 
+/* A marker with a `shape` or `hollow` (see plot.js) is a path, so the hover
+   enlargement is a scale about its own center instead of a bigger r. */
+.plot-marker--shape {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.plot-marker--shape.is-active {
+  transform: scale(1.55);
+}
+
+/* Hollow: an outline in the series color (set inline) around the panel. */
+.plot-marker--hollow {
+  fill: var(--panel);
+  stroke-width: 1.5;
+}
+
 .plot-overlay {
   cursor: crosshair;
 }
@@ -1110,6 +1127,122 @@ a.fc-result .fc-result-label {
   color: var(--text-dim);
 }
 
+/* A legend with groups (see plot.js) is a table: each group's head in the
+   first column, its items wrapping in the second, so the heads line up. The
+   table shrinks to its content and centers under the plot like the plain
+   legend does. */
+.plot-legend--grouped {
+  display: grid;
+  grid-template-columns: max-content auto;
+  justify-content: center;
+  align-items: start;
+  gap: 0.45rem 1.25rem;
+}
+
+.plot-legend-group-head {
+  font-weight: 600;
+}
+
+.plot-legend-group-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.25rem;
+}
+
+/* legendSlots (see plot.js): a layout that doesn't depend on the items. The
+   legend takes the plot's width (capped, so the cells don't drift apart on a
+   wide screen), the head column is as wide as the widest head (every group is
+   always passed, so that's fixed), and each group's items fill equal cells of
+   the remaining width — none of which changes with the labels in the cells.
+   Labels too long for a cell get an ellipsis instead of widening it, and every
+   cell, empty or not, is one line tall. */
+.plot-legend--slotted {
+  grid-template-columns: max-content minmax(0, 1fr);
+  justify-content: stretch;
+  align-items: center;
+  width: 100%;
+  max-width: 46rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.plot-legend--slotted .plot-legend-group-items {
+  display: grid;
+  grid-template-columns: repeat(var(--legend-slots), minmax(0, 1fr));
+  grid-auto-rows: minmax(1.2rem, auto);
+  align-items: center;
+}
+
+.plot-legend--slotted .plot-legend-group-head,
+.plot-legend--slotted .plot-legend-group-items > .plot-legend-item {
+  min-height: 1.2rem;
+}
+
+.plot-legend--slotted .plot-legend-group-items > .plot-legend-item {
+  min-width: 0;
+}
+
+.plot-legend--slotted .plot-legend-group-items .plot-legend-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* legendActions (see plot.js): a row of buttons under the legend, spanning
+   the whole grid when the legend is grouped. Same flat, square skin as the
+   page toggles. */
+.plot-legend-actions {
+  grid-column: 1 / -1;
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.plot-legend-action {
+  padding: 0.25rem 0.75rem;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.plot-legend-action:hover {
+  background: var(--accent-dim);
+}
+
+/* Nothing to offer right now (e.g. a PEM table that doesn't list the selected
+   size): dimmed as a whole, checkbox included, and not clickable. */
+.plot-legend-item.is-disabled {
+  opacity: 0.4;
+}
+
+.plot-legend-item--toggle.is-disabled,
+.plot-legend-item--toggle.is-disabled input {
+  cursor: default;
+}
+
+/* A legend item's marker, for items that name a shape: filled in the item's
+   color, or in the text color when it has none (e.g. a group head that stands
+   for a shape shared by differently colored series). */
+.plot-legend-marker {
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.85rem;
+  overflow: visible;
+  fill: var(--text);
+}
+
+.plot-legend-marker path.is-hollow {
+  fill: none;
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
 .plot-legend-swatch {
   flex: 0 0 auto;
   width: 0.85rem;
@@ -1142,9 +1275,15 @@ a.fc-result .fc-result-label {
   color: var(--text);
 }
 
+/* Stands in for the plot at the plot's height (set inline by plot.js), with
+   the message centered in it. */
 .plot-empty {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0;
-  padding: 3rem 1rem;
+  padding: 0 1rem;
   text-align: center;
   color: var(--text-dim);
   border: 1px dashed var(--panel-border);
@@ -1216,23 +1355,6 @@ a.fc-result .fc-result-label {
 .tol-format-option.is-active {
   background: var(--accent);
   color: var(--panel);
-}
-
-/* A segmented control with more options than fit one row on a phone (the PEM
-   series picker): lets it wrap, and draws every button's full border with a
-   1px overlap instead of dropping the left one, so a button that starts a new
-   row still has its left edge. */
-.metric-toggle--wrap {
-  flex-wrap: wrap;
-  padding: 1px 0 0 1px;
-}
-
-.metric-toggle--wrap .metric-option {
-  margin: -1px 0 0 -1px;
-}
-
-.metric-toggle--wrap .metric-option + .metric-option {
-  border-left: 1px solid var(--panel-border);
 }
 
 @media (max-width: 600px) {
@@ -1346,6 +1468,20 @@ a.fc-result .fc-result-label {
   .plot-legend {
     gap: 0.35rem 0.9rem;
     font-size: 0.75rem;
+  }
+
+  .plot-legend--grouped {
+    gap: 0.45rem 0.75rem;
+  }
+
+  .plot-legend-group-items {
+    gap: 0.35rem 0.9rem;
+  }
+
+  /* Two cells per row on a phone. Every group is padded to the same number of
+     cells, so every group still takes the same number of rows. */
+  .plot-legend--slotted .plot-legend-group-items {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .plot-legend-note {
@@ -1758,6 +1894,49 @@ a.fc-result .fc-result-label {
 
 .est-table tbody tr.est-group-start > td {
   border-top-width: 2px;
+}
+
+/* --- PEM nut torque table view (pem-nut-torque.html) ---
+   The table half of the page's chart / table toggle, built on .est-table
+   (borders, header fill, group rules). Rows are headed by the series (merged
+   down its rows) and the part number, each with the marker the chart uses —
+   the series' in the text color, the part's in its plot color. */
+.pem-table .pem-row-series,
+.pem-table .pem-row-part {
+  text-align: left;
+  white-space: nowrap;
+}
+
+.pem-table .pem-row-part {
+  font-weight: 400;
+  color: var(--text);
+}
+
+/* .est-table's heavier rule starting each group is drawn on td only; the
+   series and part number cells here are row-header th, so carry it through
+   them too. */
+.pem-table tbody tr.est-group-start > th {
+  border-top-width: 2px;
+}
+
+/* The two strength columns hold short values, so their headings are stacked
+   a word per line and the cells padded tighter to keep the columns narrow. */
+.pem-table .pem-col-strength {
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+}
+
+/* A material the part's series has no column for (e.g. PC 4.6 on CLA). */
+.pem-table .pem-cell-none {
+  text-align: center;
+  color: var(--text-dim);
+}
+
+/* The table's "nothing selected" box. The chart's takes the plot's height
+   from plot.js; the table has no fixed height to match, so this is a
+   reasonable stand-in. */
+.pem-table-empty {
+  height: 12rem;
 }
 
 /* --- ISO 2768-1 general tolerances (general-tolerances.html) --- */

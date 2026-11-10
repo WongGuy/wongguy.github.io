@@ -58,16 +58,15 @@
         </div>
         <div class="spec-group" id="torque-plot-group">
           <h3 class="spec-group-title" id="plot-title">Mating Screw Tightening Torque</h3>
-          <div id="series-toggle" class="metric-toggle metric-toggle--wrap" role="group" aria-label="PEM series"></div>
+          <div id="view-toggle" class="metric-toggle" role="group" aria-label="View"></div>
           <div id="torque-plot" class="plot"></div>
+          <div id="torque-table-view" hidden>
+            <div id="torque-table-wrap" class="est-table-wrap"></div>
+            <div id="torque-table-legend"></div>
+          </div>
           <div class="plot-note">
             <h4>Notes</h4>
             <ul id="series-notes"></ul>
-            <h4>Definitions</h4>
-            <ul>
-              <li>Min. axial strength is the nut's minimum axial (push-out / pull-through) strength with a property class 12.9 mating screw.</li>
-              <li>Screw strength to develop min. axial is the mating screw stress needed for the nut to reach that axial strength.</li>
-            </ul>
           </div>
         </div>
       </div>

@@ -44,7 +44,7 @@ Design notes
 - SERIES are the worksheets, one per PEM table, not one per part-number
   prefix. A table can hold more than one prefix (SH / HNL / H share a sheet,
   the S table prints its M5 rows as SS-M5, KF2 includes KFS2), and the page
-  offers the tables as the source groups them. The key and button label for
+  offers the tables as the source groups them. The key and legend label for
   each sheet live in SERIES below; an unknown sheet stops the script rather
   than appearing under a guessed name.
 - VALUES ARE STRINGS, as printed. The workbook stores floats (so 0.81 comes
@@ -81,9 +81,10 @@ NS = {
     "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
 }
 
-# Worksheet name -> (key, button label). The key is the series' identity in
+# Worksheet name -> (key, legend label). The key is the series' identity in
 # pem-nut-torque-app.js and in localStorage — renaming one silently resets a
-# visitor's saved selection. Order here is the order of the series buttons.
+# visitor's saved selection. Order here is the order of the series' lines in
+# the plot legend.
 SERIES = {
     "S Nuts": ("S", "S"),
     "CLS Nuts": ("CLS", "CLS"),

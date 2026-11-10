@@ -10,6 +10,8 @@
 //       label:  legend text,
 //       color:  any CSS color (pass a var(--...) so it follows the theme),
 //       points: [{ x, y, ...anything else }, ...]   // sorted by x
+//       shape:  optional marker shape, see MARKER_SHAPES (default "circle")
+//       hollow: optional; true draws the markers as outlines in the color
 //     }, ...],
 //     xLabel, yLabel,       // axis titles, drawn as-is
 //     xMin, xMax, yMin, yMax, // optional; override the computed domain on
@@ -18,12 +20,22 @@
 //                             // approaches zero and use the freed space
 //     formatX, formatY,     // (value) => string, for tick labels
 //     formatTooltip,        // (point, series) => [string, ...] lines
-//     emptyMessage,         // shown when no series has points
+//     emptyMessage,         // shown when no series has points, in a box the
+//                           // height of the plot it replaces
 //     legendItems: [{       // optional; defaults to one item per drawn series
 //       key, label, color,
 //       active,             // false renders the item as switched off
 //       note,               // small trailing text, e.g. why there's no line
 //       onToggle,           // (nextActive) => void; makes the item a checkbox
+//       disabled,           // true grays the item out and locks its checkbox
+//       shape, hollow,      // optional; draws that marker as the swatch (in
+//                           // `color`, or the text color without one)
+//       items,              // optional; makes this item a group, see below
+//     }, ...],
+//     legendSlots,          // optional; fixed item columns per group, see below
+//     legendActions: [{     // optional; buttons in a row under the legend
+//       key, label,
+//       onClick,            // () => void; e.g. switch every series on or off
 //     }, ...],
 //   })
 //
@@ -31,6 +43,22 @@
 // surface: the list is drawn as given rather than derived from what's on the
 // plot, so a series the caller has switched off still has a row to switch back
 // on, and the legend stays up even when nothing is plotted at all.
+//
+// A legend item with `items` is a group: its own label (and checkbox, given an
+// onToggle) heads a line, followed by its child items, which are ordinary
+// legend items. Once any item is a group the legend is laid out as a table —
+// heads in one column, each group's items wrapping in the next — so the heads
+// line up. What a group's toggle does to its children is up to the caller;
+// the legend only reports the click.
+//
+// `legendSlots: n` fixes a grouped legend's layout so it doesn't move when the
+// items do: the legend spans the plot's width (up to a cap), every group's
+// items sit in n equal-width cells (padded with empty ones; 2 per row on a
+// phone), and labels too long for a cell are cut with an ellipsis rather than
+// widening it. Given the same groups and n, the legend is the same size no
+// matter which items are passed — so a caller that wants a stable legend
+// passes every group every time, with `disabled` on the ones that have nothing
+// to offer right now, rather than dropping them.
 //
 // Calling it again on the same container redraws in place, so a page can call
 // it on every control change. The container is measured on each draw and
@@ -43,6 +71,18 @@
 // anchors the line), and a series can set `dash` to a stroke-dasharray string
 // to draw its line dashed, or `line: false` to draw its markers unconnected
 // (for points that don't lie on a continuous x, like categories).
+//
+// Markers are circles unless a series names a `shape` from MARKER_SHAPES
+// below, and filled unless it sets `hollow` — between them, ten looks, for
+// telling series apart when color alone can't (e.g. more series than colors).
+// A legend item with the same `shape` / `hollow` shows that marker, so the
+// legend can say which look is which.
+//
+// Two helpers are exported alongside renderLinePlot for pages that show the
+// same data without the plot: renderPlotLegend(container, options) draws just
+// the legend (same legendItems / legendSlots options), and
+// createPlotMarker({ shape, hollow, color }) returns one marker as a small
+// inline SVG.
 //
 // `xCategories: [label, ...]` makes the x axis categorical: category i sits at
 // x = i, the domain defaults to -0.5 .. n - 0.5 so each category gets an equal
@@ -76,6 +116,36 @@
     const node = document.createElementNS(SVG_NS, name);
     for (const key in attrs) node.setAttribute(key, attrs[key]);
     return node;
+  }
+
+  // Marker outlines as SVG path data, centered on (cx, cy), for a marker of
+  // nominal radius r. Each is scaled so the shapes read as about the same
+  // size as the circle rather than having the same bounding box.
+  const MARKER_SHAPES = {
+    circle: (cx, cy, r) =>
+      `M${cx - r} ${cy}A${r} ${r} 0 1 0 ${cx + r} ${cy}A${r} ${r} 0 1 0 ${cx - r} ${cy}Z`,
+    square: (cx, cy, r) => {
+      const h = r * 0.9;
+      return `M${cx - h} ${cy - h}H${cx + h}V${cy + h}H${cx - h}Z`;
+    },
+    diamond: (cx, cy, r) => {
+      const h = r * 1.25;
+      return `M${cx} ${cy - h}L${cx + h} ${cy}L${cx} ${cy + h}L${cx - h} ${cy}Z`;
+    },
+    triangle: (cx, cy, r) => {
+      const h = r * 1.3;
+      const w = h * 0.866;
+      return `M${cx} ${cy - h}L${cx + w} ${cy + h / 2}L${cx - w} ${cy + h / 2}Z`;
+    },
+    "triangle-down": (cx, cy, r) => {
+      const h = r * 1.3;
+      const w = h * 0.866;
+      return `M${cx} ${cy + h}L${cx + w} ${cy - h / 2}L${cx - w} ${cy - h / 2}Z`;
+    },
+  };
+
+  function markerPath(shape, cx, cy, r) {
+    return (MARKER_SHAPES[shape] || MARKER_SHAPES.circle)(cx, cy, r);
   }
 
   // Rounds a raw step up to the next 1/2/2.5/5 x 10^n, so tick labels land on
@@ -184,53 +254,148 @@
       opts.legendItems ||
       drawnSeries.map((s) => ({ key: s.key, label: s.label, color: s.color, active: true }));
 
+    const grouped = items.some((item) => Array.isArray(item.items));
+    if (!grouped) {
+      items.forEach((item) => legend.appendChild(buildLegendItem(container, item)));
+      appendLegendActions(container, legend, opts);
+      return legend;
+    }
+
+    // Grouped: a two-column grid of head | items. An ungrouped item among
+    // groups sits in the items column with an empty head beside it.
+    legend.classList.add("plot-legend--grouped");
+    const slots = opts.legendSlots > 0 ? Math.floor(opts.legendSlots) : 0;
+    if (slots) {
+      legend.classList.add("plot-legend--slotted");
+      legend.style.setProperty("--legend-slots", String(slots));
+    }
     items.forEach((item) => {
-      const active = item.active !== false;
-      const interactive = typeof item.onToggle === "function";
-      const row = document.createElement(interactive ? "label" : "span");
-      row.className = "plot-legend-item";
-      if (interactive) row.classList.add("plot-legend-item--toggle");
-      if (!active) row.classList.add("is-off");
-      if (item.note) row.classList.add("is-noted");
+      const isGroup = Array.isArray(item.items);
+      const head = isGroup
+        ? buildLegendItem(container, item)
+        : document.createElement("span");
+      head.classList.add("plot-legend-group-head");
+      legend.appendChild(head);
 
-      if (interactive) {
-        const input = document.createElement("input");
-        input.type = "checkbox";
-        input.checked = active;
-        input.dataset.legendKey = item.key;
-        input.addEventListener("change", () => {
-          const wasFocused = document.activeElement === input;
-          item.onToggle(input.checked);
-          if (!wasFocused) return;
-          const next = container.querySelector(
-            `.plot-legend input[data-legend-key="${item.key}"]`
-          );
-          if (next) next.focus();
-        });
-        row.appendChild(input);
+      const body = document.createElement("div");
+      body.className = "plot-legend-group-items";
+      if (isGroup) {
+        body.setAttribute("role", "group");
+        body.setAttribute("aria-label", item.label);
+        item.items.forEach((child) => body.appendChild(buildLegendItem(container, child)));
+      } else {
+        body.appendChild(buildLegendItem(container, item));
       }
+      while (body.children.length < slots) {
+        const empty = document.createElement("span");
+        empty.className = "plot-legend-slot";
+        body.appendChild(empty);
+      }
+      legend.appendChild(body);
+    });
+    appendLegendActions(container, legend, opts);
+    return legend;
+  }
 
+  // The legendActions buttons, on a row of their own under the items. Like a
+  // legend checkbox, a button's click usually redraws the legend, so focus is
+  // handed to the same button in the new one.
+  function appendLegendActions(container, legend, opts) {
+    const actions = (opts.legendActions || []).filter((a) => typeof a.onClick === "function");
+    if (!actions.length) return;
+    const row = document.createElement("div");
+    row.className = "plot-legend-actions";
+    actions.forEach((action) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "plot-legend-action";
+      button.dataset.legendAction = action.key;
+      button.textContent = action.label;
+      button.addEventListener("click", () => {
+        action.onClick();
+        const next = container.querySelector(
+          `.plot-legend button[data-legend-action="${action.key}"]`
+        );
+        if (next) next.focus();
+      });
+      row.appendChild(button);
+    });
+    legend.appendChild(row);
+  }
+
+  // One legend row: checkbox (when the item has an onToggle), swatch (when it
+  // has a color — a group head usually doesn't), label, and optional note.
+  function buildLegendItem(container, item) {
+    const active = item.active !== false;
+    const interactive = typeof item.onToggle === "function";
+    const row = document.createElement(interactive ? "label" : "span");
+    row.className = "plot-legend-item";
+    if (interactive) row.classList.add("plot-legend-item--toggle");
+    if (!active) row.classList.add("is-off");
+    if (item.note) row.classList.add("is-noted");
+    if (item.disabled) row.classList.add("is-disabled");
+
+    if (interactive) {
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.checked = active;
+      input.disabled = !!item.disabled;
+      input.dataset.legendKey = item.key;
+      input.addEventListener("change", () => {
+        const wasFocused = document.activeElement === input;
+        item.onToggle(input.checked);
+        if (!wasFocused) return;
+        const next = container.querySelector(
+          `.plot-legend input[data-legend-key="${item.key}"]`
+        );
+        if (next) next.focus();
+      });
+      row.appendChild(input);
+    }
+
+    if (item.shape || item.hollow) {
+      row.appendChild(createPlotMarker(item));
+    } else if (item.color) {
       const swatch = document.createElement("span");
       swatch.className = "plot-legend-swatch";
       swatch.style.background = item.color;
       row.appendChild(swatch);
+    }
 
-      const label = document.createElement("span");
-      label.className = "plot-legend-label";
-      label.textContent = item.label;
-      row.appendChild(label);
+    const label = document.createElement("span");
+    label.className = "plot-legend-label";
+    label.textContent = item.label;
+    row.appendChild(label);
 
-      if (item.note) {
-        const note = document.createElement("span");
-        note.className = "plot-legend-note";
-        note.textContent = item.note;
-        row.appendChild(note);
-      }
+    if (item.note) {
+      const note = document.createElement("span");
+      note.className = "plot-legend-note";
+      note.textContent = item.note;
+      row.appendChild(note);
+    }
 
-      legend.appendChild(row);
+    return row;
+  }
+
+  // A marker drawn on its own, as a small inline SVG — the legend's swatch for
+  // an item that names a shape, and exported so a page can show the same
+  // marker elsewhere (e.g. beside a row in a table of the plotted values).
+  // Filled in `color`, or the text color without one (see style.css).
+  function createPlotMarker(opts) {
+    const swatch = el("svg", {
+      class: "plot-legend-marker",
+      viewBox: "-7 -7 14 14",
+      "aria-hidden": "true",
     });
-
-    return legend;
+    const path = el("path", { d: markerPath(opts.shape, 0, 0, 4.2) });
+    if (opts.hollow) {
+      path.classList.add("is-hollow");
+      if (opts.color) path.style.stroke = opts.color;
+    } else if (opts.color) {
+      path.style.fill = opts.color;
+    }
+    swatch.appendChild(path);
+    return swatch;
   }
 
   function draw(container) {
@@ -266,10 +431,19 @@
 
     container.innerHTML = "";
 
+    const baseHeight = Math.round(Math.min(460, Math.max(260, width * 0.58)));
+
     if (!series.length) {
+      // The message takes the plot's place at the plot's height, so emptying
+      // the plot doesn't pull the legend and everything under it up the page.
+      // That's the height of the last plot drawn at this width (which may have
+      // grown for rotated labels); failing that, the height a plot starts at.
       const empty = document.createElement("p");
       empty.className = "plot-empty";
       empty.textContent = opts.emptyMessage || "No data to plot.";
+      const height =
+        state.drawnWidth === width && state.drawnHeight > 0 ? state.drawnHeight : baseHeight;
+      empty.style.height = `${height}px`;
       container.appendChild(empty);
       // The legend is drawn even with nothing to plot: when it carries the
       // toggles, it's the only way back to a non-empty plot.
@@ -277,7 +451,7 @@
       return;
     }
 
-    let height = Math.round(Math.min(460, Math.max(260, width * 0.58)));
+    let height = baseHeight;
     const compact = width < 520;
 
     const margin = {
@@ -395,6 +569,9 @@
     const nearGuideY = (py) =>
       guides.some((g) => Math.abs(g.cy - py) < 15) ||
       yGuides.some((g) => Math.abs(g.cy - py) < 15);
+
+    state.drawnWidth = width;
+    state.drawnHeight = height;
 
     const svg = el("svg", {
       class: "plot-svg",
@@ -603,13 +780,31 @@
         // dot — used to keep a curve's construction points hidden while
         // showing only a single point of interest on it.
         if (p.marker === false) return;
-        const marker = el("circle", {
-          class: "plot-marker",
-          cx: xScale(p.x),
-          cy: yScale(p.y),
-          r: compact ? 3 : 3.5,
-          fill: s.color,
-        });
+        const r = compact ? 3 : 3.5;
+        let marker;
+        if (s.shape || s.hollow) {
+          // A path rather than a circle, so it can take any shape. Its hover
+          // enlargement is a CSS scale about its own center, since there's no
+          // `r` to change.
+          marker = el("path", {
+            class: "plot-marker plot-marker--shape",
+            d: markerPath(s.shape, xScale(p.x), yScale(p.y), r),
+          });
+          if (s.hollow) {
+            marker.classList.add("plot-marker--hollow");
+            marker.style.stroke = s.color;
+          } else {
+            marker.setAttribute("fill", s.color);
+          }
+        } else {
+          marker = el("circle", {
+            class: "plot-marker",
+            cx: xScale(p.x),
+            cy: yScale(p.y),
+            r: r,
+            fill: s.color,
+          });
+        }
         group.appendChild(marker);
         markers.push({ marker: marker, point: p, series: s, cx: xScale(p.x), cy: yScale(p.y) });
       });
@@ -793,5 +988,17 @@
     draw(container);
   }
 
+  // Draws just the legend into its own container, from the same options
+  // renderLinePlot takes (legendItems, legendSlots). For a page that shows the
+  // plotted data some other way — a table, say — but keeps the legend as its
+  // series control. Call it again to redraw after a toggle.
+  function renderPlotLegend(container, options) {
+    if (!container) return;
+    container.innerHTML = "";
+    container.appendChild(buildLegend(container, options, []));
+  }
+
   window.renderLinePlot = renderLinePlot;
+  window.renderPlotLegend = renderPlotLegend;
+  window.createPlotMarker = createPlotMarker;
 })();

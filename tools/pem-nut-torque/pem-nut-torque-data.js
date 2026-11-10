@@ -12,7 +12,7 @@
 //
 //   pemNutSeries = [{
 //     key:       stable id, also the localStorage identity of the series
-//     label:     series button text ("S", "SH / HNL / H", ...)
+//     label:     the series' legend checkbox text ("S", "SH / HNL / H", ...)
 //     title:     the source table's title, minus " - Metric"
 //     k:         nut factor the table's torques assume, as printed ("0.20")
 //     footnotes: the source table's own footnotes, as plain sentences

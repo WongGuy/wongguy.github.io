@@ -30,12 +30,48 @@
       <div class="chart-card-header">
         <h2>PEM Standoff Torque</h2>
         <div class="chart-card-subheader">
-          <h3>WIP</h3>
+          <h3>(PennEngineering PEM® fastener data) Maximum recommended tightening torque for a mating screw threaded into a PEM self-clinching standoff, by standoff type and material.</h3>
+        </div>
+      </div>
+      <div class="chart-layout">
+        <div class="slider-sticky">
+          <div class="slider-block">
+            <div id="size-readout" class="size-readout">M3</div>
+            <div class="slider-track-wrap">
+              <input
+                type="range"
+                id="size-slider"
+                class="size-slider"
+                min="0"
+                max="0"
+                step="1"
+                value="0"
+                aria-label="Select thread diameter"
+              />
+              <div id="slider-ticks" class="slider-ticks"></div>
+              <div class="slider-endpoints">
+                <span id="slider-min-label"></span>
+                <span id="slider-max-label"></span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="spec-group" id="torque-plot-group">
+          <h3 class="spec-group-title" id="plot-title">Mating Screw Tightening Torque</h3>
+          <div id="torque-plot" class="plot"></div>
+          <div class="plot-note">
+            <h4>Notes</h4>
+            <ul id="series-notes"></ul>
+          </div>
         </div>
       </div>
     </section>
   </main>
 
   <footer></footer>
+
+  <script src="tools/pem-standoff-torque/pem-standoff-torque-data.js"></script>
+  <script src="plot.js"></script>
+  <script src="tools/pem-standoff-torque/pem-standoff-torque-app.js"></script>
 </body>
 </html>
