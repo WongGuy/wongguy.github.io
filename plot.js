@@ -12,6 +12,9 @@
 //       points: [{ x, y, ...anything else }, ...]   // sorted by x
 //       shape:  optional marker shape, see MARKER_SHAPES (default "circle")
 //       hollow: optional; true draws the markers as outlines in the color
+//       bar:    optional; true draws each point as a bar instead, see below
+//       barWidth: a bar's width in x units (default 0.18 — a categorical band
+//               is 1 wide)
 //     }, ...],
 //     xLabel, yLabel,       // axis titles, drawn as-is
 //     xMin, xMax, yMin, yMax, // optional; override the computed domain on
@@ -71,6 +74,12 @@
 // anchors the line), and a series can set `dash` to a stroke-dasharray string
 // to draw its line dashed, or `line: false` to draw its markers unconnected
 // (for points that don't lie on a continuous x, like categories).
+//
+// A series with `bar: true` draws each point as a filled bar from zero (or the
+// bottom of the y domain, if that's above zero) up to its y, centered on its
+// x and `barWidth` wide, and no line. Bars are hit-tested over their whole
+// area for the tooltip, not just near the top. With xCategories and the same
+// dodging a dot plot uses, that's a grouped bar chart.
 //
 // Markers are circles unless a series names a `shape` from MARKER_SHAPES
 // below, and filled unless it sets `hollow` — between them, ten looks, for
@@ -765,6 +774,34 @@
     const markers = [];
     series.forEach((s) => {
       const group = el("g", { class: "plot-series" });
+      if (s.bar) {
+        const half = (s.barWidth > 0 ? s.barWidth : 0.18) / 2;
+        const base = yScale(Math.max(yMin, Math.min(0, yMax)));
+        s.points.forEach((p) => {
+          const x0 = xScale(p.x - half);
+          const x1 = xScale(p.x + half);
+          const top = Math.min(yScale(p.y), base);
+          const bar = el("rect", {
+            class: "plot-bar",
+            x: x0,
+            y: top,
+            width: Math.max(1, x1 - x0),
+            height: Math.max(0, base - top),
+            fill: s.color,
+          });
+          group.appendChild(bar);
+          markers.push({
+            marker: bar,
+            point: p,
+            series: s,
+            cx: xScale(p.x),
+            cy: top,
+            box: { x0: x0, x1: x1, y0: top, y1: base },
+          });
+        });
+        svg.appendChild(group);
+        return;
+      }
       if (s.points.length > 1 && s.line !== false) {
         const d = s.points
           .map((p, i) => `${i === 0 ? "M" : "L"}${xScale(p.x)} ${yScale(p.y)}`)
@@ -919,7 +956,14 @@
       let best = null;
       let bestDist = Infinity;
       markers.forEach((m) => {
-        const dist = Math.hypot(m.cx - px, m.cy - py);
+        // A bar counts as hit anywhere over it (distance 0), and otherwise
+        // by its distance from the pointer to its nearest edge.
+        const dist = m.box
+          ? Math.hypot(
+              Math.max(m.box.x0 - px, 0, px - m.box.x1),
+              Math.max(m.box.y0 - py, 0, py - m.box.y1)
+            )
+          : Math.hypot(m.cx - px, m.cy - py);
         if (dist < bestDist) {
           bestDist = dist;
           best = m;

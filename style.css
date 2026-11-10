@@ -1053,6 +1053,13 @@ a.fc-result .fc-result-label {
   stroke: var(--text);
 }
 
+/* Bars (`bar: true` in plot.js): flat fills, outlined in the text color while
+   their tooltip is up. */
+.plot-bar.is-active {
+  stroke: var(--text);
+  stroke-width: 1.5;
+}
+
 /* A marker with a `shape` or `hollow` (see plot.js) is a path, so the hover
    enlargement is a scale about its own center instead of a bigger r. */
 .plot-marker--shape {
@@ -1896,13 +1903,15 @@ a.fc-result .fc-result-label {
   border-top-width: 2px;
 }
 
-/* --- PEM nut torque table view (pem-nut-torque.html) ---
-   The table half of the page's chart / table toggle, built on .est-table
-   (borders, header fill, group rules). Rows are headed by the series (merged
-   down its rows) and the part number, each with the marker the chart uses —
-   the series' in the text color, the part's in its plot color. */
+/* --- PEM torque table views (pem-nut-torque.html, pem-standoff-torque.html)
+   The table half of each page's chart / table toggle, built on .est-table
+   (borders, header fill, group rules). Rows are headed by the series, merged
+   down its rows, then plain-weight row labels (part number; or thread code
+   and material). .pem-row-text is a left-aligned text cell among the
+   right-aligned numbers (PEM types, test sheet). */
 .pem-table .pem-row-series,
-.pem-table .pem-row-part {
+.pem-table .pem-row-part,
+.pem-table .pem-row-text {
   text-align: left;
   white-space: nowrap;
 }

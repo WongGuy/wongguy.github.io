@@ -20,6 +20,24 @@
 // only: with every table on there are around twenty parts at M3 or M6, and holding
 // a slot for each hidden one would crowd the few that are shown.
 //
+// SCREW GRADES
+//
+// Under the plot, a checkbox per mating screw material (every table's
+// materials merged, as above) picks which of them are shown: the plot's
+// categories and the table view's torque columns are both cut down to the
+// ticked ones. "Show common" ticks just Stainless A2-70 and Steel PC 8.8, 9.8
+// and 12.9 — the same four drawn bold in the list — like the bolt size
+// estimator's "Show common" for its property classes.
+//
+// With exactly one grade ticked there's only one category left to plot, so
+// the chart turns over: a bar chart with the PEM tables (the series) along
+// the x axis instead of the materials, one band per table with a torque at
+// that grade, its shown parts as bars side by side in their legend colors.
+// The table, not a marker, now says which series a bar is from, so the
+// legend drops the markers and keeps just the part colors; the grade moves
+// into the title. The rule is the checkbox count, not how many categories
+// survive trimming, so toggling a table never flips the chart type.
+//
 // LEGEND
 //
 // One line per PEM table, headed by a checkbox with the table's label ("S",
@@ -49,8 +67,8 @@
 // A toggle over the plot (styled like the NASA page's torque toggle) swaps
 // the plot for a table of the same values: the same shown parts at the size,
 // grouped by table, with each part's min. axial strength, screw strength,
-// and one torque column per material (a dash where a table has no such
-// column). The table keeps the legend under it, drawn with renderPlotLegend
+// and one torque column per material — the same ticked screw grades the plot
+// shows (a dash where a table has no such column). The table keeps the legend under it, drawn with renderPlotLegend
 // from the same items the plot gets, so the selection can be changed in
 // either view. The table is plain: no markers or colors in its cells or in
 // its legend, since there's no plot for them to key. Only the view on screen
@@ -62,10 +80,11 @@
 // selected size is grayed out in the legend.
 //
 // State remembered in localStorage between visits: the view, the size, which
-// tables are switched off, and which part numbers are. Off rather than on, so a part or
-// table not seen before starts switched on — except on a first visit, where
-// only one table is on (the series the page's old one-table picker had
-// selected, if any) rather than every part at the size at once.
+// tables are switched off, which part numbers are, and which screw grades
+// are. Off rather than on, so a part, table or grade not seen before starts
+// switched on — except on a first visit, where only one table is on (the
+// series the page's old one-table picker had selected, if any) rather than
+// every part at the size at once. Every grade starts on.
 
 (function () {
   const sliderEl = document.getElementById("size-slider");
@@ -80,11 +99,14 @@
   const tableViewEl = document.getElementById("torque-table-view");
   const tableWrapEl = document.getElementById("torque-table-wrap");
   const tableLegendEl = document.getElementById("torque-table-legend");
+  const gradeTogglesEl = document.getElementById("grade-toggles");
+  const gradeCommonEl = document.getElementById("grade-common");
 
   const SIZE_STORAGE_KEY = "pemNutTorqueSize";
   const VIEW_STORAGE_KEY = "pemNutTorqueView";
   const HIDDEN_STORAGE_KEY = "pemNutTorqueHidden";
   const HIDDEN_SERIES_STORAGE_KEY = "pemNutTorqueHiddenSeries";
+  const HIDDEN_GRADES_STORAGE_KEY = "pemNutTorqueHiddenGrades";
   // Written by the one-table series picker this page used to have. Only read
   // now, to pick which table a returning visitor starts with.
   const OLD_SERIES_STORAGE_KEY = "pemNutTorqueSeries";
@@ -97,6 +119,23 @@
   ];
 
   const EMPTY_MESSAGE = "No valid PEM series selected at this size";
+  const NO_GRADE_MESSAGE = "No screw grade selected";
+
+  // The everyday screw grades: what "Show common" ticks, drawn bold in the
+  // grade list. Names as the tables print them (see `materials` in the data).
+  const COMMON_GRADES = new Set([
+    "Stainless A2-70",
+    "Steel PC 8.8",
+    "Steel PC 9.8",
+    "Steel PC 12.9",
+  ]);
+
+  // The single-grade bar chart: bars BAR_STEP apart within a table's band (a
+  // band is 1 wide) and a little narrower than that, so neighbors don't touch
+  // — the standoff page's spacing. No table lists more than four parts at one
+  // size, so a band's bars fill at most 0.8 of it.
+  const BAR_STEP = 0.2;
+  const BAR_WIDTH = 0.17;
 
   // The plot colors live in style.css (light and dark values) so they follow
   // the theme. A part's color is its place within its own table's line, and
@@ -178,6 +217,7 @@
 
   const hiddenSeries = getStoredSet(HIDDEN_SERIES_STORAGE_KEY) || defaultHiddenSeries();
   const hiddenParts = getStoredSet(HIDDEN_STORAGE_KEY) || new Set();
+  const hiddenGrades = getStoredSet(HIDDEN_GRADES_STORAGE_KEY) || new Set();
   let selectedIndex = 0;
   const storedView = localStorage.getItem(VIEW_STORAGE_KEY);
   let selectedView = VIEWS.some((v) => v.key === storedView) ? storedView : VIEWS[0].key;
@@ -267,6 +307,70 @@
     renderPlot();
   }
 
+  // --- Screw grades ---
+
+  // The ticked grades, in category order.
+  function shownGrades() {
+    return allMaterials.filter((material) => !hiddenGrades.has(material));
+  }
+
+  // The grade the chart is a bar chart of: the only one ticked, if there is.
+  function singleGrade() {
+    const grades = shownGrades();
+    return grades.length === 1 ? grades[0] : null;
+  }
+
+  const gradeInputs = new Map();
+
+  function buildGradeToggles() {
+    allMaterials.forEach((material) => {
+      const label = document.createElement("label");
+      label.className = "est-grade-toggle";
+      if (COMMON_GRADES.has(material)) label.classList.add("est-grade-toggle--strong");
+
+      const input = document.createElement("input");
+      input.type = "checkbox";
+      input.addEventListener("change", () => setGradeShown(material, input.checked));
+      label.appendChild(input);
+      gradeInputs.set(material, input);
+
+      const text = document.createElement("span");
+      text.textContent = material;
+      label.appendChild(text);
+
+      gradeTogglesEl.appendChild(label);
+    });
+    syncGradeToggles();
+  }
+
+  function syncGradeToggles() {
+    gradeInputs.forEach((input, material) => {
+      input.checked = !hiddenGrades.has(material);
+    });
+  }
+
+  function saveHiddenGrades() {
+    localStorage.setItem(HIDDEN_GRADES_STORAGE_KEY, JSON.stringify(Array.from(hiddenGrades)));
+  }
+
+  function setGradeShown(material, shown) {
+    if (shown) hiddenGrades.delete(material);
+    else hiddenGrades.add(material);
+    saveHiddenGrades();
+    renderPlot();
+  }
+
+  // "Show common": tick only COMMON_GRADES, untick the rest.
+  function showCommonGrades() {
+    hiddenGrades.clear();
+    allMaterials.forEach((material) => {
+      if (!COMMON_GRADES.has(material)) hiddenGrades.add(material);
+    });
+    syncGradeToggles();
+    saveHiddenGrades();
+    renderPlot();
+  }
+
   // --- Slider (same construction as the other selectors) ---
 
   function getThumbWidth() {
@@ -332,6 +436,11 @@
     return (i - (n - 1) / 2) * step;
   }
 
+  // The same for bar i of n within a table's band in the bar chart.
+  function barOffset(i, n) {
+    return (i - (n - 1) / 2) * BAR_STEP;
+  }
+
   // "a", "a and b", "a, b and c".
   function joinList(items) {
     if (items.length <= 1) return items.join("");
@@ -341,14 +450,21 @@
   // Every table, in table order, whether or not it lists the size — see
   // LEGEND above. A table without the size has a locked head that reads as
   // ticked when the table is switched on, and no parts.
-  // `plain` leaves out the markers and colors (the table view's legend).
-  function buildLegendItems(size, plain) {
-    const look = (marker, color) =>
-      plain ? {} : { shape: marker.shape, hollow: marker.hollow, color: color };
+  // `swatches` is what the legend keys: "markers" (the dot plot — each head
+  // shows its table's marker, each part its color), "colors" (the bar chart —
+  // part colors only, since the x axis now says which table a bar is from),
+  // or "none" (the table view, which has nothing to key).
+  function buildLegendItems(size, swatches) {
+    const headLook = (series) => {
+      if (swatches !== "markers") return {};
+      const marker = markerFor(series);
+      return { shape: marker.shape, hollow: marker.hollow };
+    };
+    const partLook = (i) => (swatches === "none" ? {} : { color: colorFor(i) });
     return pemNutSeries.map((series) => {
       const group = size.groups.find((g) => g.series === series);
       if (!group) {
-        return Object.assign(look(markerFor(series)), {
+        return Object.assign(headLook(series), {
           key: `series:${series.key}`,
           label: series.label,
           active: !hiddenSeries.has(series.key),
@@ -357,13 +473,13 @@
           items: [],
         });
       }
-      return Object.assign(look(markerFor(series)), {
+      return Object.assign(headLook(series), {
         key: `series:${series.key}`,
         label: series.label,
         active: isGroupShown(group),
         onToggle: (checked) => setGroupShown(group, checked),
         items: group.parts.map((part, i) =>
-          Object.assign(plain ? {} : { color: colorFor(i) }, {
+          Object.assign(partLook(i), {
             key: part.partNumber,
             label: part.partNumber,
             active: isPartShown(series, part),
@@ -379,7 +495,9 @@
     const size = currentSize();
     const shownGroups = size.groups.filter(isGroupShown);
     const described = describedSeries(size, shownGroups);
-    const materials = allMaterials.filter((m) =>
+    const grades = shownGrades();
+    const grade = singleGrade();
+    const materials = grades.filter((m) =>
       described.some((series) => series.materials.includes(m))
     );
 
@@ -393,20 +511,40 @@
     });
 
     plotTitleEl.textContent =
-      shownGroups.length === 1
+      (shownGroups.length === 1
         ? `${shownGroups[0].series.title}, ${size.size}`
-        : `PEM® Nuts, ${size.size}`;
+        : `PEM® Nuts, ${size.size}`) + (grade ? `, ${grade} Screw` : "");
+
+    // Why there's nothing to draw, for whichever view comes up empty.
+    const emptyMessage = !grades.length
+      ? NO_GRADE_MESSAGE
+      : !shownParts.length
+        ? EMPTY_MESSAGE
+        : `No torque listed for ${grade || "the selected screw grades"} in the selected series`;
 
     if (selectedView === "table") {
-      renderTable(size, materials, shownParts);
+      renderTable(size, materials, shownParts, emptyMessage);
+    } else if (grade) {
+      renderBarChart(size, shownGroups, grade, shownParts, emptyMessage);
     } else {
-      renderChart(size, shownGroups, materials, shownParts);
+      renderChart(size, shownGroups, materials, shownParts, emptyMessage);
     }
 
     renderNotes(described);
   }
 
-  function renderChart(size, shownGroups, materials, shownParts) {
+  // A plotted point's tooltip, the same for a dot or a bar.
+  function tooltipLines(point, s) {
+    return [
+      s.label,
+      `${point.material}: ${point.torque} Nm`,
+      `Min. axial strength (PC 12.9 screw): ${point.part.minAxialStrength} kN`,
+      `Screw strength to develop min. axial: ${point.part.screwStrength} MPa`,
+    ];
+  }
+
+  // The dot plot: screw materials along x, a marker per shown part in each.
+  function renderChart(size, shownGroups, materials, shownParts, emptyMessage) {
     const series = shownParts.map((entry, j) => ({
       key: entry.part.partNumber,
       label: entry.part.partNumber,
@@ -422,12 +560,12 @@
           material: material,
           part: entry.part,
         }))
-        .filter((p) => Number.isFinite(p.y)),
+        .filter((p) => materials.includes(p.material) && Number.isFinite(p.y)),
     }));
 
     renderLinePlot(plotEl, {
       series: series,
-      legendItems: buildLegendItems(size),
+      legendItems: buildLegendItems(size, "markers"),
       legendSlots: legendSlots,
       legendActions: LEGEND_ACTIONS,
       xCategories: materials.map(categoryLines),
@@ -437,13 +575,66 @@
         `Mating screw tightening torque by screw material for PEM ` +
         (shownGroups.length ? `${joinList(shownGroups.map((g) => g.series.label))} ` : "") +
         `nuts, ${size.size}, ${series.length} part numbers`,
-      formatTooltip: (point, s) => [
-        s.label,
-        `${point.material}: ${point.torque} Nm`,
-        `Min. axial strength (PC 12.9 screw): ${point.part.minAxialStrength} kN`,
-        `Screw strength to develop min. axial: ${point.part.screwStrength} MPa`,
-      ],
-      emptyMessage: EMPTY_MESSAGE,
+      formatTooltip: tooltipLines,
+      emptyMessage: emptyMessage,
+    });
+  }
+
+  // The bar chart, for exactly one grade ticked: the PEM tables along x, one
+  // band per table with a torque at the grade (a table without that column,
+  // like CLA at PC 4.6, gets no band), and its shown parts as bars side by
+  // side in their legend colors.
+  function renderBarChart(size, shownGroups, grade, shownParts, emptyMessage) {
+    // shownParts runs in table order, so a table's parts are consecutive.
+    const bands = [];
+    shownParts.forEach((entry) => {
+      const m = entry.series.materials.indexOf(grade);
+      const y = m >= 0 ? parseFloat(entry.part.torque[m]) : NaN;
+      if (!Number.isFinite(y)) return;
+      let band = bands[bands.length - 1];
+      if (!band || band.series !== entry.series) {
+        band = { series: entry.series, bars: [] };
+        bands.push(band);
+      }
+      band.bars.push({ entry: entry, y: y, torque: entry.part.torque[m] });
+    });
+
+    const series = [];
+    bands.forEach((band, b) => {
+      band.bars.forEach((bar, i) => {
+        series.push({
+          key: bar.entry.part.partNumber,
+          label: bar.entry.part.partNumber,
+          color: bar.entry.color,
+          bar: true,
+          barWidth: BAR_WIDTH,
+          points: [
+            {
+              x: b + barOffset(i, band.bars.length),
+              y: bar.y,
+              torque: bar.torque,
+              material: grade,
+              part: bar.entry.part,
+            },
+          ],
+        });
+      });
+    });
+
+    renderLinePlot(plotEl, {
+      series: series,
+      legendItems: buildLegendItems(size, "colors"),
+      legendSlots: legendSlots,
+      legendActions: LEGEND_ACTIONS,
+      xCategories: bands.map((band) => band.series.label),
+      xLabel: "Series",
+      yLabel: "Mating Screw Tightening Torque (Nm)",
+      ariaLabel:
+        `Mating screw tightening torque with a ${grade} screw by PEM series` +
+        (shownGroups.length ? ` (${joinList(shownGroups.map((g) => g.series.label))})` : "") +
+        `, ${size.size}, ${series.length} part numbers`,
+      formatTooltip: tooltipLines,
+      emptyMessage: emptyMessage,
     });
   }
 
@@ -463,13 +654,13 @@
   // table (a merged first cell with the table's label, and a heavier rule
   // starting each group), then the part number, its strengths, and its torque
   // under each material column.
-  function renderTable(size, materials, shownParts) {
+  function renderTable(size, materials, shownParts, emptyMessage) {
     tableWrapEl.innerHTML = "";
 
-    if (!shownParts.length) {
+    if (!shownParts.length || !materials.length) {
       const empty = document.createElement("p");
       empty.className = "plot-empty pem-table-empty";
-      empty.textContent = EMPTY_MESSAGE;
+      empty.textContent = emptyMessage;
       tableWrapEl.appendChild(empty);
     } else {
       const table = document.createElement("table");
@@ -555,7 +746,7 @@
     }
 
     renderPlotLegend(tableLegendEl, {
-      legendItems: buildLegendItems(size, true),
+      legendItems: buildLegendItems(size, "none"),
       legendSlots: legendSlots,
       legendActions: LEGEND_ACTIONS,
     });
@@ -655,7 +846,10 @@
 
   buildSlider();
   buildViewToggle();
+  buildGradeToggles();
   syncView();
+
+  gradeCommonEl.addEventListener("click", showCommonGrades);
 
   sliderEl.addEventListener("input", () => {
     pickIndex(Number(sliderEl.value));

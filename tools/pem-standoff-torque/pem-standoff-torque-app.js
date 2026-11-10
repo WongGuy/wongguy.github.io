@@ -6,18 +6,19 @@
 //
 // WHAT'S PLOTTED
 //
-// One marker per table, standoff material and thread code at the selected
-// size, at that row's maximum recommended tightening torque for the mating
-// screw. The x axis is categorical, one band per thread code and table, thread
-// code first ("M3 / SO / BSO", "M3 / SO4 / BSO4", ..., "3.5M3 / SO / BSO", ...)
-// so the tables sit side by side for each thread. A size's thread codes are
-// the ones ending in it: 3.5M3 (a 3.5 mm body with an M3 thread) belongs to
-// M3, so it shares the M3 slider position and gets bands of its own. Bands are
-// trimmed to the tables with a material shown.
+// A grouped bar chart: one bar per table, standoff material and thread code
+// at the selected size, up to that row's maximum recommended tightening
+// torque for the mating screw. The x axis is categorical, one band per table
+// and thread code, table first ("M3 / SO / BSO", "3.5M3 / SO / BSO",
+// "M3 / SO4 / BSO4", "3.5M3 / SO4 / BSO4", ...), so a table's 3.5M3 sits
+// right beside its M3. A size's thread codes are the ones ending in it: 3.5M3
+// (a 3.5 mm body with an M3 thread) belongs to M3, so it shares the M3 slider
+// position and gets bands of its own. Bands are trimmed to the tables with a
+// material shown.
 //
-// A marker's color is its material — the same in every table, and the same as
+// A bar's color is its material — the same in every table, and the same as
 // that material's column in the legend. Within a band the table's shown
-// materials are dodged side by side, since they can share a torque.
+// materials stand side by side, one bar width apart.
 //
 // LEGEND
 //
@@ -38,8 +39,8 @@
 //     one brings them all back, since otherwise the tick would draw nothing;
 //   - ticking a material while its table's head is off turns the head back on
 //     with just that material, as every material on the line read as unticked.
-// Under the lines, "Check all tables" and "Uncheck all tables" set every
-// table's head at once.
+// Under the lines, "Check all series" and "Uncheck all series" set every
+// table's head at once, grayed-out tables included.
 //
 // The legend keeps one size for every slider position: every table always has
 // its line and every line has a cell per material (legendSlots in plot.js). A
@@ -47,8 +48,18 @@
 // showing what's switched on, so it can't be changed at a size where it would
 // do nothing.
 //
-// State remembered in localStorage between visits: the size, which tables are
-// switched off, and which materials are (per table, "SO:Aluminum"). Off rather
+// CHART / TABLE
+//
+// A toggle over the chart (styled like the NASA page's torque toggle) swaps
+// it for a table of the same rows: the shown tables, thread codes and
+// materials at the size, in the chart's order, each with its PEM types and
+// max. torque, and a line per test sheet with the installation, pushout,
+// torque-out and pull-thru values the chart's tooltip gives. The table keeps
+// the legend under it (drawn with renderPlotLegend), plain, with no colors,
+// since there are no bars for them to key. Only the view on screen is drawn.
+//
+// State remembered in localStorage between visits: the view, the size, which
+// tables are switched off, and which materials are (per table, "SO:Aluminum"). Off rather
 // than on, so a table or material not seen before starts switched on.
 
 (function () {
@@ -60,12 +71,30 @@
   const plotEl = document.getElementById("torque-plot");
   const plotTitleEl = document.getElementById("plot-title");
   const notesEl = document.getElementById("series-notes");
+  const viewToggleEl = document.getElementById("view-toggle");
+  const tableViewEl = document.getElementById("torque-table-view");
+  const tableWrapEl = document.getElementById("torque-table-wrap");
+  const tableLegendEl = document.getElementById("torque-table-legend");
 
   const SIZE_STORAGE_KEY = "pemStandoffTorqueSize";
+  const VIEW_STORAGE_KEY = "pemStandoffTorqueView";
   const HIDDEN_SERIES_STORAGE_KEY = "pemStandoffTorqueHiddenSeries";
   const HIDDEN_MATERIALS_STORAGE_KEY = "pemStandoffTorqueHiddenMaterials";
 
   const DEFAULT_SIZE = "M3";
+
+  const VIEWS = [
+    { key: "chart", label: "Chart" },
+    { key: "table", label: "Table" },
+  ];
+
+  const EMPTY_MESSAGE = "No standoff material selected at this size";
+
+  // Bars are BAR_STEP apart within a band (a band is 1 wide) and a little
+  // narrower than that, so neighbors don't touch. No table lists more than
+  // three materials, so a band's bars fill at most 0.6 of it.
+  const BAR_STEP = 0.2;
+  const BAR_WIDTH = 0.17;
 
   // Every material any table lists, merged into one order the way the nut page
   // merges its screw materials: a material a table adds goes right after the
@@ -128,6 +157,8 @@
   const hiddenSeries = getStoredSet(HIDDEN_SERIES_STORAGE_KEY) || new Set();
   const hiddenMaterials = getStoredSet(HIDDEN_MATERIALS_STORAGE_KEY) || new Set();
   let selectedIndex = 0;
+  const storedView = localStorage.getItem(VIEW_STORAGE_KEY);
+  let selectedView = VIEWS.some((v) => v.key === storedView) ? storedView : VIEWS[0].key;
 
   function currentSize() {
     return sizes[selectedIndex];
@@ -219,8 +250,8 @@
   }
 
   const LEGEND_ACTIONS = [
-    { key: "check-all", label: "Check all tables", onClick: () => setAllSeriesShown(true) },
-    { key: "uncheck-all", label: "Uncheck all tables", onClick: () => setAllSeriesShown(false) },
+    { key: "check-all", label: "Check all series", onClick: () => setAllSeriesShown(true) },
+    { key: "uncheck-all", label: "Uncheck all series", onClick: () => setAllSeriesShown(false) },
   ];
 
   function setMaterialShown(group, name, shown) {
@@ -290,12 +321,10 @@
 
   // --- Plot ---
 
-  // Horizontal offset of marker i of n within a category band (band width 1),
+  // Horizontal offset of bar i of n within a category band (band width 1),
   // centered on the category.
   function dodge(i, n) {
-    if (n <= 1) return 0;
-    const step = Math.min(0.2, 0.7 / n);
-    return (i - (n - 1) / 2) * step;
+    return (i - (n - 1) / 2) * BAR_STEP;
   }
 
   // "a", "a and b", "a, b and c".
@@ -312,7 +341,8 @@
   // Every table, in table order, whether or not it lists the size — see
   // LEGEND above. Every line has a cell per material; the ones the table
   // can't offer here are locked, unticked if the table never lists them.
-  function buildLegendItems(size) {
+  // `plain` leaves out the color swatches (the table view's legend).
+  function buildLegendItems(size, plain) {
     return pemStandoffSeries.map((series) => {
       const group = size.groups.find((g) => g.series === series);
       const items = allMaterials.map((name) => {
@@ -320,7 +350,7 @@
         return {
           key: materialKey(series, name),
           label: legendLabel(name),
-          color: colorFor(name),
+          color: plain ? undefined : colorFor(name),
           active: isListed(series, name) && isMaterialShown(series, name),
           disabled: !offered,
           onToggle: offered ? (checked) => setMaterialShown(group, name, checked) : () => {},
@@ -346,19 +376,13 @@
     });
   }
 
-  // The x axis bands at a size: each thread code (in the order the tables
-  // list them, so M3 before 3.5M3), then each table with a shown material
-  // at that thread.
+  // The x axis bands at a size: each table (table order), then each of its
+  // thread codes (sheet order, so M3 before 3.5M3) that has a shown material.
+  // The table view's rows follow the same order.
   function bandsFor(size) {
-    const threads = [];
+    const bands = [];
     size.groups.forEach((group) => {
       group.threads.forEach((thread) => {
-        if (!threads.includes(thread)) threads.push(thread);
-      });
-    });
-    const bands = [];
-    threads.forEach((thread) => {
-      size.groups.forEach((group) => {
         const drawn = group.rows.some(
           (row) => row.thread === thread && isMaterialShown(group.series, row.material)
         );
@@ -368,13 +392,26 @@
     return bands;
   }
 
+  // Redraws whichever view is on screen, plus the title and notes they share.
   function renderPlot() {
     const size = currentSize();
     const shownGroups = size.groups.filter(isGroupShown);
     const bands = bandsFor(size);
 
-    // One series per table and material shown, a marker in each of the
-    // table's bands that has a row for the material.
+    plotTitleEl.textContent =
+      shownGroups.length === 1
+        ? `${shownGroups[0].series.title}, ${size.size}`
+        : `PEM® Standoffs, ${size.size}`;
+
+    if (selectedView === "table") renderTable(size, bands);
+    else renderChart(size, shownGroups, bands);
+
+    renderNotes(describedSeries(size, shownGroups));
+  }
+
+  function renderChart(size, shownGroups, bands) {
+    // One series per table and material shown, a bar in each of the table's
+    // bands that has a row for the material.
     const series = [];
     size.groups.forEach((group) => {
       const materials = shownMaterials(group);
@@ -392,16 +429,12 @@
           key: materialKey(group.series, name),
           label: `${typesFor(group.series, name).join(" / ")} (${name})`,
           color: colorFor(name),
-          line: false,
+          bar: true,
+          barWidth: BAR_WIDTH,
           points: points,
         });
       });
     });
-
-    plotTitleEl.textContent =
-      shownGroups.length === 1
-        ? `${shownGroups[0].series.title}, ${size.size}`
-        : `PEM® Standoffs, ${size.size}`;
 
     renderLinePlot(plotEl, {
       series: series,
@@ -435,10 +468,147 @@
         });
         return lines;
       },
-      emptyMessage: "No standoff material selected at this size",
+      emptyMessage: EMPTY_MESSAGE,
     });
+  }
 
-    renderNotes(describedSeries(size, shownGroups));
+  // --- Table ---
+
+  function headerCell(lines, attrs) {
+    const th = document.createElement("th");
+    lines.forEach((line, i) => {
+      if (i) th.appendChild(document.createElement("br"));
+      th.appendChild(document.createTextNode(line));
+    });
+    Object.keys(attrs || {}).forEach((key) => th.setAttribute(key, attrs[key]));
+    return th;
+  }
+
+  function cell(tag, text, attrs) {
+    const c = document.createElement(tag);
+    c.textContent = text;
+    Object.keys(attrs || {}).forEach((key) => c.setAttribute(key, attrs[key]));
+    return c;
+  }
+
+  // The chart's rows as a table, in the chart's band order: per table, per
+  // thread code, per shown material, one line per test sheet. The table,
+  // thread, and material cells (types, max. torque) are merged down the lines
+  // they cover, with a heavier rule starting each table.
+  function renderTable(size, bands) {
+    tableWrapEl.innerHTML = "";
+
+    // Each band's shown rows, each with its test sheets' lines.
+    const entries = bands.map((band) => ({
+      band: band,
+      rows: allMaterials
+        .filter((name) => isMaterialShown(band.group.series, name))
+        .map((name) => band.group.rows.find((r) => r.thread === band.thread && r.material === name))
+        .filter(Boolean),
+    }));
+
+    if (!entries.length) {
+      const empty = document.createElement("p");
+      empty.className = "plot-empty pem-table-empty";
+      empty.textContent = EMPTY_MESSAGE;
+      tableWrapEl.appendChild(empty);
+    } else {
+      const table = document.createElement("table");
+      table.className = "est-table pem-table";
+
+      const thead = document.createElement("thead");
+      const head = document.createElement("tr");
+      head.appendChild(headerCell(["Series"], { scope: "col" }));
+      head.appendChild(headerCell(["Thread"], { scope: "col" }));
+      head.appendChild(headerCell(["Material"], { scope: "col" }));
+      head.appendChild(headerCell(["Type"], { scope: "col" }));
+      head.appendChild(
+        headerCell(["Max.", "Torque", "(Nm)"], { scope: "col", class: "pem-col-strength est-col-divide" })
+      );
+      head.appendChild(headerCell(["Test Sheet"], { scope: "col" }));
+      head.appendChild(headerCell(["Install.", "(kN)"], { scope: "col", class: "pem-col-strength" }));
+      head.appendChild(headerCell(["Pushout", "(N)"], { scope: "col", class: "pem-col-strength" }));
+      head.appendChild(headerCell(["Torque-", "out (Nm)"], { scope: "col", class: "pem-col-strength" }));
+      head.appendChild(headerCell(["Pull-thru", "(N)"], { scope: "col", class: "pem-col-strength" }));
+      thead.appendChild(head);
+      table.appendChild(thead);
+
+      const tbody = document.createElement("tbody");
+      const lineCount = (series) => series.testSheets.length;
+      entries.forEach((entry, e) => {
+        const series = entry.band.group.series;
+        const firstOfTable = e === 0 || entries[e - 1].band.group !== entry.band.group;
+        const threadSpan = entry.rows.length * lineCount(series);
+
+        entry.rows.forEach((row, r) => {
+          series.testSheets.forEach((sheet, k) => {
+            const tr = document.createElement("tr");
+            if (firstOfTable && r === 0 && k === 0) {
+              tr.className = "est-group-start";
+              const tableSpan = entries
+                .filter((other) => other.band.group === entry.band.group)
+                .reduce((sum, other) => sum + other.rows.length * lineCount(series), 0);
+              tr.appendChild(
+                cell("th", series.label, {
+                  scope: "rowgroup",
+                  rowspan: String(tableSpan),
+                  class: "est-row-size pem-row-series",
+                })
+              );
+            }
+            if (r === 0 && k === 0) {
+              tr.appendChild(
+                cell("th", row.thread, {
+                  scope: "rowgroup",
+                  rowspan: String(threadSpan),
+                  class: "est-row-label pem-row-part",
+                })
+              );
+            }
+            if (k === 0) {
+              const span = String(lineCount(series));
+              tr.appendChild(
+                cell("th", row.material, {
+                  scope: "row",
+                  rowspan: span,
+                  class: "est-row-label pem-row-part",
+                })
+              );
+              tr.appendChild(
+                cell("td", typesFor(series, row.material).join(" / "), {
+                  rowspan: span,
+                  class: "pem-row-text",
+                })
+              );
+              tr.appendChild(
+                cell("td", row.torque, { rowspan: span, class: "pem-col-strength est-col-divide" })
+              );
+            }
+            const p = row.performance[k];
+            tr.appendChild(cell("td", sheet, { class: "pem-row-text" }));
+            [
+              p && p.installation,
+              p && p.pushout,
+              p && p.torqueOut,
+              p && p.pullThru,
+            ].forEach((value) => {
+              const td = cell("td", shown(value), { class: "pem-col-strength" });
+              if (value === null || value === undefined) td.classList.add("pem-cell-none");
+              tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+          });
+        });
+      });
+      table.appendChild(tbody);
+      tableWrapEl.appendChild(table);
+    }
+
+    renderPlotLegend(tableLegendEl, {
+      legendItems: buildLegendItems(size, true),
+      legendSlots: allMaterials.length,
+      legendActions: LEGEND_ACTIONS,
+    });
   }
 
   // The tables the notes describe. Normally the ones drawn at this size. With
@@ -464,8 +634,8 @@
     );
     const items = [
       "Torques are the maximum recommended tightening torque for the mating screw.",
-      `Each marker's tooltip also gives the standoff's torque-out, pushout and ` +
-        `pull-thru in its test sheets: ${sheets.join("; ")}.`,
+      `Each bar's tooltip (and the table) also gives the standoff's torque-out, ` +
+        `pushout and pull-thru in its test sheets: ${sheets.join("; ")}.`,
     ];
     const owners = new Map();
     seriesList.forEach((series) => {
@@ -486,6 +656,37 @@
 
   // --- Controls ---
 
+  function buildViewToggle() {
+    VIEWS.forEach((view) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "metric-option";
+      button.dataset.view = view.key;
+      button.textContent = view.label;
+      button.addEventListener("click", () => setView(view.key));
+      viewToggleEl.appendChild(button);
+    });
+  }
+
+  // Shows the selected view and hides the other. The view is shown before
+  // it's drawn, so the chart measures its real width rather than a hidden 0.
+  function syncView() {
+    viewToggleEl.querySelectorAll(".metric-option").forEach((button) => {
+      const isActive = button.dataset.view === selectedView;
+      button.classList.toggle("is-active", isActive);
+      button.setAttribute("aria-pressed", isActive ? "true" : "false");
+    });
+    plotEl.hidden = selectedView !== "chart";
+    tableViewEl.hidden = selectedView !== "table";
+  }
+
+  function setView(key) {
+    selectedView = key;
+    localStorage.setItem(VIEW_STORAGE_KEY, key);
+    syncView();
+    renderPlot();
+  }
+
   // Moves the slider to a size and redraws.
   function showIndex(i) {
     selectedIndex = Math.max(0, Math.min(sizes.length - 1, i));
@@ -504,6 +705,8 @@
   window.addEventListener("resize", updateReadoutWidth);
 
   buildSlider();
+  buildViewToggle();
+  syncView();
 
   sliderEl.addEventListener("input", () => {
     pickIndex(Number(sliderEl.value));
